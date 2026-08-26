@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>News — Ju Board</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1A1A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ju Board">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+<header class="header">
+  <a href="index.html" class="logo">Ju Board</a>
+  <div class="header-actions">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Rechercher…" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<main class="container">
+
+  <h1 class="section-title" style="font-family: var(--font-serif); font-size: 28px; margin-top: 20px;">Toute l'actualité</h1>
+
+  <!-- ===== FILTRES ===== -->
+  <div class="news-filters">
+    <div class="select-row">
+      <div class="select-wrap">
+        <select id="domain-select">
+          <option value="all">Tous les domaines</option>
+          <option value="economie">💰 Économie &amp; Finance</option>
+          <option value="geopolitique">🌍 Géopolitique</option>
+          <option value="tech">💻 Tech &amp; IA</option>
+          <option value="environnement">🌱 Environnement</option>
+          <option value="politique">🏛️ Politique</option>
+          <option value="sante">💊 Santé</option>
+          <option value="spatial">🚀 Spatial</option>
+          <option value="energie">⚡ Énergie</option>
+          <option value="histoire">📚 Histoire</option>
+          <option value="societe">🎭 Société</option>
+        </select>
+      </div>
+      <div class="select-wrap">
+        <select id="subdomain-select">
+          <option value="all">Tous les sous-domaines</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sort-tabs">
+      <button class="sort-tab active" data-sort="recent">Plus récent</button>
+      <button class="sort-tab" data-sort="important">Plus important</button>
+      <button class="sort-tab" data-sort="impact">Impact élevé</button>
+    </div>
+  </div>
+
+  <!-- ===== LISTE NEWS ===== -->
+  <section class="section news-list" id="news-list">
+
+    <article class="card news-card" data-domain="economie">
+      <div class="news-meta">
+        <span class="sector-badge">💰 Économie</span>
+        <span class="news-source">Reuters</span>
+        <span class="news-time">Il y a 2h</span>
+      </div>
+      <h3 class="news-title">La Fed signale une possible pause dans les baisses de taux</h3>
+      <p class="news-summary">Les marchés réagissent à un discours plus prudent que prévu de la présidente de la Fed. Les obligations à long terme sont sous pression alors que les investisseurs révisent leurs anticipations pour 2027.</p>
+      <div class="indicator down">
+        <span>↓ Impact négatif estimé</span>
+      </div>
+      <button class="btn-expand" data-action="expand">Lire plus ↓</button>
+      <div class="news-expanded hidden">
+        <p class="news-detail">Le discours prononcé mercredi devant le Congrès marque un changement de ton net par rapport aux dernières minutes du FOMC. La probabilité implicite d'une baisse en septembre, mesurée par les contrats à terme, est passée de 78% à 41% en quelques heures.</p>
+        <div class="impact-detail">
+          <div class="scenario-row"><span>Scénario principal — poursuite du statu quo</span><span class="scenario-prob">65%</span></div>
+          <div class="scenario-row"><span>Scénario alternatif — baisse repoussée à 2027</span><span class="scenario-prob">25%</span></div>
+          <div class="scenario-row"><span>Scénario extrême — remontée surprise des taux</span><span class="scenario-prob">10%</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">Fed</span>
+          <span class="tag">Taux d'intérêt</span>
+          <span class="tag">Obligations</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card news-card" data-domain="geopolitique">
+      <div class="news-meta">
+        <span class="sector-badge">🌍 Géopolitique</span>
+        <span class="news-source">Le Monde</span>
+        <span class="news-time">Il y a 4h</span>
+      </div>
+      <h3 class="news-title">Nouvelles sanctions annoncées après l'escalade en mer Rouge</h3>
+      <p class="news-summary">Les compagnies maritimes réévaluent leurs routes commerciales. Tensions croissantes sur le prix du fret mondial et les délais de livraison.</p>
+      <div class="indicator neutral">
+        <span>→ Impact mixte estimé</span>
+      </div>
+      <button class="btn-expand" data-action="expand">Lire plus ↓</button>
+      <div class="news-expanded hidden">
+        <p class="news-detail">Les nouvelles mesures ciblent les assureurs maritimes plutôt que les transporteurs directement, une approche inédite qui complique le contournement des sanctions. Une dizaine de compagnies ont déjà annoncé une réévaluation de leur passage par le canal de Suez.</p>
+        <div class="impact-detail">
+          <div class="scenario-row"><span>Scénario principal — détours prolongés via le Cap</span><span class="scenario-prob">55%</span></div>
+          <div class="scenario-row"><span>Scénario alternatif — désescalade sous 30 jours</span><span class="scenario-prob">30%</span></div>
+          <div class="scenario-row"><span>Scénario extrême — fermeture prolongée du corridor</span><span class="scenario-prob">15%</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">Mer Rouge</span>
+          <span class="tag">Fret maritime</span>
+          <span class="tag">Sanctions</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card news-card" data-domain="tech">
+      <div class="news-meta">
+        <span class="sector-badge">💻 Tech &amp; IA</span>
+        <span class="news-source">Bloomberg</span>
+        <span class="news-time">Il y a 6h</span>
+      </div>
+      <h3 class="news-title">Un nouveau modèle IA bat les records de benchmarks scientifiques</h3>
+      <p class="news-summary">L'annonce relance le débat sur la course à l'IA générale entre grands laboratoires. Les performances en raisonnement mathématique dépassent les précédents records de 12 points.</p>
+      <div class="indicator up">
+        <span>↑ Impact positif estimé</span>
+      </div>
+      <button class="btn-expand" data-action="expand">Lire plus ↓</button>
+      <div class="news-expanded hidden">
+        <p class="news-detail">Le laboratoire n'a pas communiqué de date de disponibilité publique. Les analystes s'attendent à une réaction rapide des concurrents directs dans les prochaines semaines, ce qui pourrait accélérer le calendrier de sortie de plusieurs modèles concurrents.</p>
+        <div class="impact-detail">
+          <div class="scenario-row"><span>Scénario principal — accélération de la concurrence</span><span class="scenario-prob">60%</span></div>
+          <div class="scenario-row"><span>Scénario alternatif — adoption entreprise progressive</span><span class="scenario-prob">30%</span></div>
+          <div class="scenario-row"><span>Scénario extrême — consolidation du marché IA</span><span class="scenario-prob">10%</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">Intelligence artificielle</span>
+          <span class="tag">Big Tech</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card news-card" data-domain="sante">
+      <div class="news-meta">
+        <span class="sector-badge">💊 Santé</span>
+        <span class="news-source">OMS</span>
+        <span class="news-time">Il y a 3h</span>
+      </div>
+      <h3 class="news-title">Un vaccin universel contre la grippe entre en phase 3</h3>
+      <p class="news-summary">Résultats préliminaires prometteurs sur plus de 10 000 patients dans six pays. Efficacité mesurée contre plusieurs souches simultanément.</p>
+      <div class="indicator up">
+        <span>↑ Impact positif estimé</span>
+      </div>
+      <button class="btn-expand" data-action="expand">Lire plus ↓</button>
+      <div class="news-expanded hidden">
+        <p class="news-detail">Si les résultats de phase 3 confirment les données préliminaires, une demande d'autorisation accélérée pourrait être déposée dès l'an prochain auprès de la FDA et de l'EMA.</p>
+        <div class="impact-detail">
+          <div class="scenario-row"><span>Scénario principal — validation phase 3 fin d'année prochaine</span><span class="scenario-prob">50%</span></div>
+          <div class="scenario-row"><span>Scénario alternatif — extension des essais</span><span class="scenario-prob">35%</span></div>
+          <div class="scenario-row"><span>Scénario extrême — échec sur une souche cible</span><span class="scenario-prob">15%</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">Vaccins</span>
+          <span class="tag">Biotech</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card news-card" data-domain="energie">
+      <div class="news-meta">
+        <span class="sector-badge">⚡ Énergie</span>
+        <span class="news-source">Les Échos</span>
+        <span class="news-time">Il y a 9h</span>
+      </div>
+      <h3 class="news-title">Nouvelle capacité solaire record installée ce trimestre</h3>
+      <p class="news-summary">La croissance des installations dépasse les prévisions des agences internationales pour la troisième année consécutive.</p>
+      <div class="indicator up">
+        <span>↑ Impact positif estimé</span>
+      </div>
+      <button class="btn-expand" data-action="expand">Lire plus ↓</button>
+      <div class="news-expanded hidden">
+        <p class="news-detail">La baisse continue des coûts de production des panneaux, combinée à des politiques de subvention maintenues dans plusieurs grandes économies, explique cette accélération.</p>
+        <div class="impact-detail">
+          <div class="scenario-row"><span>Scénario principal — poursuite de la trajectoire actuelle</span><span class="scenario-prob">70%</span></div>
+          <div class="scenario-row"><span>Scénario alternatif — ralentissement des subventions</span><span class="scenario-prob">20%</span></div>
+          <div class="scenario-row"><span>Scénario extrême — saturation réseau électrique</span><span class="scenario-prob">10%</span></div>
+        </div>
+        <div class="tags">
+          <span class="tag">Solaire</span>
+          <span class="tag">Transition énergétique</span>
+        </div>
+      </div>
+    </article>
+
+  </section>
+
+  <button class="load-more" id="load-more" style="margin-bottom: 24px;">Charger plus</button>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">🏠 <span>Accueil</span></a>
+  <a href="news.html" class="nav-item active">📰 <span>News</span></a>
+  <a href="analyse.html" class="nav-item">📊 <span>Analyse</span></a>
+  <a href="recherche.html" class="nav-item">🔍 <span>Recherche</span></a>
+  <a href="assistant.html" class="nav-item">🤖 <span>Assistant</span></a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/utils.js"></script>
+<script src="js/news.js"></script>
+</body>
+</html>
