@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recherche — Ju Board</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1A1A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ju Board">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+<header class="header">
+  <a href="index.html" class="logo">Ju Board</a>
+  <div class="header-actions">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Rechercher…" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="search-hero">
+    <h1 class="search-hero-title">Recherche avancée</h1>
+    <div class="search-hero-bar">
+      <input type="text" id="advanced-search-input" placeholder="Rechercher une news, une entreprise, un concept…" autocomplete="off">
+    </div>
+
+    <div class="search-filters">
+      <div class="filter-group">
+        <span class="filter-group-label">Période</span>
+        <div class="filter-chips" data-group="periode">
+          <button class="filter-chip active" data-value="24h">24h</button>
+          <button class="filter-chip" data-value="7j">7j</button>
+          <button class="filter-chip" data-value="30j">30j</button>
+          <button class="filter-chip" data-value="1an">1 an</button>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-group-label">Secteur</span>
+        <div class="filter-chips" data-group="secteur">
+          <button class="filter-chip active" data-value="tous">Tous</button>
+          <button class="filter-chip" data-value="economie">💰 Économie</button>
+          <button class="filter-chip" data-value="geopolitique">🌍 Géopolitique</button>
+          <button class="filter-chip" data-value="tech">💻 Tech &amp; IA</button>
+          <button class="filter-chip" data-value="sante">💊 Santé</button>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-group-label">Type</span>
+        <div class="filter-chips" data-group="type">
+          <button class="filter-chip active" data-value="tous">Tous</button>
+          <button class="filter-chip" data-value="news">News</button>
+          <button class="filter-chip" data-value="analyse">Analyse</button>
+          <button class="filter-chip" data-value="definition">Définition</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-answer-box" id="ai-answer-box">
+    <span class="ai-answer-label">🤖 Réponse générée par l'IA</span>
+    <p class="result-excerpt" id="ai-answer-text"></p>
+  </div>
+
+  <p class="results-meta" id="results-meta">4 résultats pour « quantitative tightening »</p>
+
+  <section class="section news-list">
+    <article class="card result-item">
+      <span class="result-type">News</span>
+      <h3 class="result-title">La Fed signale une possible pause dans les baisses de taux</h3>
+      <p class="result-excerpt">…un discours plus prudent que prévu de la présidente de la Fed, dans un contexte de <mark>quantitative tightening</mark> toujours actif…</p>
+    </article>
+
+    <article class="card result-item">
+      <span class="result-type">Définition</span>
+      <h3 class="result-title">Quantitative tightening (QT)</h3>
+      <p class="result-excerpt">Politique monétaire par laquelle une banque centrale réduit la taille de son bilan, à l'inverse du quantitative easing — généralement en laissant arriver à échéance les obligations détenues sans les remplacer.</p>
+    </article>
+
+    <article class="card result-item">
+      <span class="result-type">Analyse</span>
+      <h3 class="result-title">JPMorgan Chase — Cycle Finance</h3>
+      <p class="result-excerpt">…la marge nette d'intérêt reste soutenue par le contexte de taux actuel, mais sensible à un ralentissement du <mark>quantitative tightening</mark>…</p>
+    </article>
+
+    <article class="card result-item">
+      <span class="result-type">News</span>
+      <h3 class="result-title">Nouvelles sanctions annoncées après l'escalade en mer Rouge</h3>
+      <p class="result-excerpt">…les tensions sur le fret s'ajoutent à un climat de resserrement monétaire mondial…</p>
+    </article>
+  </section>
+
+  <div class="pagination">
+    <button class="page-btn active">1</button>
+    <button class="page-btn">2</button>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">🏠 <span>Accueil</span></a>
+  <a href="news.html" class="nav-item">📰 <span>News</span></a>
+  <a href="analyse.html" class="nav-item">📊 <span>Analyse</span></a>
+  <a href="recherche.html" class="nav-item active">🔍 <span>Recherche</span></a>
+  <a href="assistant.html" class="nav-item">🤖 <span>Assistant</span></a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/utils.js"></script>
+<script src="js/recherche.js"></script>
+</body>
+</html>

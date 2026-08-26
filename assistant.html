@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Assistant — Ju Board</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1A1A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ju Board">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="chat-page">
+
+<header class="header">
+  <a href="index.html" class="logo">Ju Board</a>
+  <div class="header-actions">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Rechercher…" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<main class="container">
+  <div class="chat-window" id="chat-window">
+
+    <div class="chat-msg ai">
+      <div class="chat-avatar">JB</div>
+      <div class="chat-bubble">Bonjour Justin. Pose-moi n'importe quelle question sur le monde — géopolitique, économie, histoire, science, tech. Je suis là pour t'aider à comprendre ce qui se passe.</div>
+    </div>
+
+    <div class="chat-suggestions" id="chat-suggestions">
+      <button class="suggestion-chip">Explique moi la guerre en Ukraine et ses impacts économiques</button>
+      <button class="suggestion-chip">Qu'est-ce que le quantitative tightening et pourquoi c'est important ?</button>
+      <button class="suggestion-chip">Pourquoi la Chine et les USA sont en tension sur Taiwan ?</button>
+      <button class="suggestion-chip">Comment l'IA va changer le marché du travail dans 10 ans ?</button>
+    </div>
+
+  </div>
+</main>
+
+<div class="chat-input-bar">
+  <input type="text" id="chat-input" placeholder="Écris ton message…" autocomplete="off">
+  <button class="chat-send-btn" id="chat-send" aria-label="Envoyer">➤</button>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">🏠 <span>Accueil</span></a>
+  <a href="news.html" class="nav-item">📰 <span>News</span></a>
+  <a href="analyse.html" class="nav-item">📊 <span>Analyse</span></a>
+  <a href="recherche.html" class="nav-item">🔍 <span>Recherche</span></a>
+  <a href="assistant.html" class="nav-item active">🤖 <span>Assistant</span></a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/utils.js"></script>
+<script src="js/assistant.js"></script>
+</body>
+</html>
