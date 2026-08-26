@@ -41,12 +41,29 @@ async function handleClaude(request, env) {
   });
 }
 
+async function handleWeather(request, env) {
+  const url = new URL(request.url);
+  const lat = url.searchParams.get('lat');
+  const lon = url.searchParams.get('lon');
+
+  const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${env.OPENWEATHER_KEY}&units=metric&lang=fr`;
+  const resp = await fetch(weatherUrl);
+  const data = await resp.json();
+
+  return new Response(JSON.stringify(data), {
+    status: resp.status,
+    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
+  });
+}
+
 async function handleNews(request, env) {
   const url = new URL(request.url);
   const q = url.searchParams.get('q') || 'monde';
 
   const newsUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=fr&sortBy=publishedAt&pageSize=20&apiKey=${env.NEWSAPI_KEY}`;
-  const resp = await fetch(newsUrl);
+  const resp = await fetch(newsUrl, {
+    headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' }
+  });
   const data = await resp.json();
 
   return new Response(JSON.stringify(data), {
@@ -69,6 +86,9 @@ export default {
       }
       if (url.pathname === '/api/news' && request.method === 'GET') {
         return await handleNews(request, env);
+      }
+      if (url.pathname === '/api/weather' && request.method === 'GET') {
+        return await handleWeather(request, env);
       }
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {

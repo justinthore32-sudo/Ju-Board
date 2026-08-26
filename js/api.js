@@ -10,12 +10,7 @@
    cas de fuite est négligeable.
    ============================================ */
 
-/* URL du Worker déployé — à remplacer une fois `wrangler deploy` fait.
-   Exemple : 'https://ju-board-proxy.TON-SOUS-DOMAINE.workers.dev' */
-const PROXY_URL = 'https://ju-board-proxy.YOUR-SUBDOMAIN.workers.dev';
-
-/* Clé OpenWeatherMap gratuite — openweathermap.org */
-const OPENWEATHER_KEY = 'REMPLACE_MOI';
+const PROXY_URL = 'https://ju-board-proxy.ju-board-justin.workers.dev';
 
 /* ---------- ANTHROPIC (via proxy) ---------- */
 async function callClaude(messages, { system, maxTokens = 1000 } = {}) {
@@ -35,10 +30,9 @@ async function fetchNews(query) {
   return resp.json();
 }
 
-/* ---------- OPENWEATHERMAP (direct) ---------- */
+/* ---------- OPENWEATHERMAP (via proxy) ---------- */
 async function fetchWeather(lat, lon) {
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_KEY}&units=metric&lang=fr`;
-  const resp = await fetch(url);
+  const resp = await fetch(`${PROXY_URL}/api/weather?lat=${lat}&lon=${lon}`);
   if (!resp.ok) throw new Error(`Erreur météo (${resp.status})`);
   const data = await resp.json();
   return {

@@ -1,6 +1,7 @@
 /* ============================================
    JU BOARD — news.js
-   Page News : filtres, tri, expansion des cartes
+   Page News : filtres, tri, chargement des vraies
+   actualités via le Worker proxy (NewsAPI)
    ============================================ */
 
 const SUBDOMAINS = {
@@ -16,10 +17,107 @@ const SUBDOMAINS = {
   societe: ['Tendances sociales', 'Démographie', 'Culture', 'Sciences sociales']
 };
 
+const DOMAIN_QUERIES = {
+  all: 'actualité internationale',
+  economie: 'économie OR marchés financiers OR banque centrale',
+  geopolitique: 'géopolitique OR diplomatie OR conflit international',
+  tech: 'intelligence artificielle OR technologie',
+  environnement: 'climat OR environnement',
+  politique: 'politique France OR Europe',
+  sante: 'santé OR médecine OR vaccin',
+  spatial: 'espace OR spatial OR NASA',
+  energie: 'énergie OR pétrole OR nucléaire',
+  histoire: 'histoire',
+  societe: 'société'
+};
+
+const DOMAIN_LABELS = {
+  economie: '💰 Économie', geopolitique: '🌍 Géopolitique', tech: '💻 Tech & IA',
+  environnement: '🌱 Environnement', politique: '🏛️ Politique', sante: '💊 Santé',
+  spatial: '🚀 Spatial', energie: '⚡ Énergie', histoire: '📚 Histoire', societe: '🎭 Société'
+};
+
+let currentPage = 1;
+let currentArticles = [];
+
+function timeAgo(dateString) {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 60) return `Il y a ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `Il y a ${hours}h`;
+  const days = Math.round(hours / 24);
+  return `Il y a ${days}j`;
+}
+
+function buildQuery() {
+  const domain = document.getElementById('domain-select').value;
+  const subdomain = document.getElementById('subdomain-select').value;
+  let query = DOMAIN_QUERIES[domain] || DOMAIN_QUERIES.all;
+  if (subdomain && subdomain !== 'all') query = `${subdomain} ${query}`;
+  return { query, domain };
+}
+
+function renderArticle(article, domainKey) {
+  const badge = DOMAIN_LABELS[domainKey] || '🌐 Actualité';
+  const summary = article.description || "Pas de résumé disponible pour cet article.";
+  return `
+    <article class="card news-card">
+      <div class="news-meta">
+        <span class="sector-badge">${badge}</span>
+        <span class="news-source">${article.source?.name || 'Source inconnue'}</span>
+        <span class="news-time">${timeAgo(article.publishedAt)}</span>
+      </div>
+      <h3 class="news-title">${article.title || 'Sans titre'}</h3>
+      <p class="news-summary">${summary}</p>
+      <a class="btn-expand" href="${article.url}" target="_blank" rel="noopener">Lire l'article original ↗</a>
+    </article>`;
+}
+
+async function loadNews(append = false) {
+  const list = document.getElementById('news-list');
+  const loadMoreBtn = document.getElementById('load-more');
+
+  if (!append) {
+    currentPage = 1;
+    list.innerHTML = `
+      <div class="skeleton" style="height: 180px; margin-bottom: 14px;"></div>
+      <div class="skeleton" style="height: 180px; margin-bottom: 14px;"></div>
+      <div class="skeleton" style="height: 180px;"></div>`;
+  }
+
+  const { query, domain } = buildQuery();
+
+  if (typeof fetchNews !== 'function') {
+    list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">API News non configurée.</p>';
+    return;
+  }
+
+  try {
+    const data = await fetchNews(query);
+    if (data.status !== 'ok') throw new Error(data.message || 'Erreur inconnue');
+
+    const articles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]');
+
+    if (!append) currentArticles = articles;
+
+    if (articles.length === 0) {
+      list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Aucune actualité trouvée pour ce filtre.</p>';
+      loadMoreBtn.classList.add('hidden');
+      return;
+    }
+
+    const html = articles.map((a) => renderArticle(a, domain)).join('');
+    list.innerHTML = append ? list.innerHTML + html : html;
+    loadMoreBtn.classList.remove('hidden');
+  } catch (err) {
+    list.innerHTML = `<p style="color: var(--red); font-size: 13px;">Erreur de chargement : ${err.message}</p>`;
+  }
+}
+
 function initDomainFilter() {
   const domainSelect = document.getElementById('domain-select');
   const subdomainSelect = document.getElementById('subdomain-select');
-  const cards = document.querySelectorAll('.news-card');
   if (!domainSelect || !subdomainSelect) return;
 
   function populateSubdomains(domain) {
@@ -34,20 +132,12 @@ function initDomainFilter() {
     });
   }
 
-  function applyFilter() {
-    const domain = domainSelect.value;
-    cards.forEach((card) => {
-      const match = domain === 'all' || card.dataset.domain === domain;
-      card.classList.toggle('hidden', !match);
-    });
-  }
-
   domainSelect.addEventListener('change', () => {
     populateSubdomains(domainSelect.value);
-    applyFilter();
+    loadNews();
   });
 
-  subdomainSelect.addEventListener('change', applyFilter);
+  subdomainSelect.addEventListener('change', () => loadNews());
 }
 
 function initSortTabs() {
@@ -56,18 +146,7 @@ function initSortTabs() {
     tab.addEventListener('click', () => {
       tabs.forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
-    });
-  });
-}
-
-function initExpandCards() {
-  document.querySelectorAll('.btn-expand').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const card = btn.closest('.news-card');
-      const expanded = card.querySelector('.news-expanded');
-      const isHidden = expanded.classList.contains('hidden');
-      expanded.classList.toggle('hidden');
-      btn.textContent = isHidden ? 'Réduire ↑' : 'Lire plus ↓';
+      loadNews();
     });
   });
 }
@@ -83,6 +162,6 @@ function initLoadMore() {
 document.addEventListener('DOMContentLoaded', () => {
   initDomainFilter();
   initSortTabs();
-  initExpandCards();
   initLoadMore();
+  loadNews();
 });
