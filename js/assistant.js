@@ -66,10 +66,10 @@ function hideTyping() {
 }
 
 function mockAiReply(userText) {
-  return `(Démo hors-ligne) Ta question — « ${userText} » — sera traitée par l'API Anthropic une fois la clé configurée dans js/api.js. Le contexte système de Ju Board est prêt à l'emploi.`;
+  return `(Démo hors-ligne) Ta question — « ${userText} » — sera traitée par l'API Anthropic une fois le Worker proxy déployé et son URL renseignée dans js/api.js. Le contexte système de Ju Board est prêt à l'emploi.`;
 }
 
-function sendMessage(text) {
+async function sendMessage(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
 
@@ -79,10 +79,30 @@ function sendMessage(text) {
   appendMessage('user', trimmed);
   showTyping();
 
-  window.setTimeout(() => {
+  const isProxyConfigured = typeof PROXY_URL === 'string' && !PROXY_URL.includes('YOUR-SUBDOMAIN');
+
+  if (!isProxyConfigured || typeof callClaude !== 'function') {
+    window.setTimeout(() => {
+      hideTyping();
+      appendMessage('ai', mockAiReply(trimmed));
+    }, 900);
+    return;
+  }
+
+  try {
+    const apiMessages = history
+      .filter((m) => m.role === 'user' || m.role === 'ai')
+      .map((m) => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+    apiMessages.push({ role: 'user', content: trimmed });
+
+    const data = await callClaude(apiMessages, { system: SYSTEM_PROMPT, maxTokens: 1000 });
     hideTyping();
-    appendMessage('ai', mockAiReply(trimmed));
-  }, 900);
+    const reply = data?.content?.[0]?.text || "Désolé, je n'ai pas pu générer de réponse.";
+    appendMessage('ai', reply);
+  } catch (err) {
+    hideTyping();
+    appendMessage('ai', `Erreur de connexion à l'assistant : ${err.message}`);
+  }
 }
 
 function initChatInput() {

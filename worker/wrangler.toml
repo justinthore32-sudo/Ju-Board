@@ -1,0 +1,12 @@
+name = "ju-board-proxy"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Remplace par l'URL réelle de ton site GitHub Pages une fois connue,
+# ex: "https://TON-USERNAME.github.io"
+ALLOWED_ORIGIN = "*"
+
+# Secrets à définir avec `wrangler secret put NOM` (jamais dans ce fichier) :
+# - ANTHROPIC_API_KEY
+# - NEWSAPI_KEY
