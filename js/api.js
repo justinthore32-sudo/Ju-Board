@@ -39,6 +39,13 @@ async function fetchRss(feedKey) {
   return resp.json();
 }
 
+/* ---------- CALENDRIER DES RÉSULTATS (Finnhub, via proxy) ---------- */
+async function fetchEarnings(symbols) {
+  const resp = await fetch(`${PROXY_URL}/api/earnings?symbols=${encodeURIComponent(symbols.join(','))}`);
+  if (!resp.ok) throw new Error(`Erreur calendrier résultats (${resp.status})`);
+  return resp.json();
+}
+
 async function fetchTopHeadlines(category = 'general') {
   const resp = await fetch(`${PROXY_URL}/api/top-headlines?category=${encodeURIComponent(category)}&country=fr`);
   if (!resp.ok) throw new Error(`Erreur NewsAPI (${resp.status})`);

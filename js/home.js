@@ -102,10 +102,90 @@ async function loadSectors() {
     </a>`).join('');
 }
 
+const EARNINGS_COMPANIES = [
+  { name: 'Apple', symbol: 'AAPL', slug: 'apple' },
+  { name: 'Nvidia', symbol: 'NVDA', slug: 'nvidia' },
+  { name: 'JPMorgan Chase', symbol: 'JPM', slug: 'jpmorgan-chase' },
+  { name: 'LVMH', symbol: 'MC.PA', slug: 'lvmh' },
+  { name: 'ExxonMobil', symbol: 'XOM', slug: 'exxonmobil' },
+  { name: 'Saudi Aramco', symbol: '2222.SR', slug: 'saudi-aramco' }
+];
+
+function formatEarningsDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
+function beatOrMiss(actual, estimate) {
+  if (actual == null || estimate == null) return null;
+  return actual >= estimate ? 'beat' : 'miss';
+}
+
+async function loadEarnings() {
+  const upcomingEl = document.getElementById('earnings-upcoming');
+  const latestEl = document.getElementById('earnings-latest');
+  if (!upcomingEl || !latestEl || typeof fetchEarnings !== 'function') return;
+
+  try {
+    const symbols = EARNINGS_COMPANIES.map((c) => c.symbol);
+    const data = await fetchEarnings(symbols);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const upcoming = [];
+    const latest = [];
+
+    EARNINGS_COMPANIES.forEach((company) => {
+      const result = data.results?.find((r) => r.symbol === company.symbol);
+      const entries = (result?.entries || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+
+      const next = entries.find((e) => e.date >= todayStr);
+      if (next) upcoming.push({ company, entry: next });
+
+      const past = entries.filter((e) => e.date < todayStr && e.epsActual != null).pop();
+      if (past) latest.push({ company, entry: past });
+    });
+
+    upcoming.sort((a, b) => a.entry.date.localeCompare(b.entry.date));
+    latest.sort((a, b) => b.entry.date.localeCompare(a.entry.date));
+
+    upcomingEl.innerHTML = upcoming.length === 0
+      ? '<p style="color: var(--text3); font-size: 12px;">Aucune date connue pour le moment.</p>'
+      : upcoming.slice(0, 6).map(({ company, entry }) => `
+        <a href="analyse.html#company-${company.slug}" class="card earnings-item">
+          <div class="earnings-item-left">
+            <span class="earnings-company">${company.name}</span>
+            <span class="earnings-date">${formatEarningsDate(entry.date)} · T${entry.quarter} ${entry.year}</span>
+          </div>
+          <span class="earnings-figures"><span class="inline">${entry.hour === 'bmo' ? 'Avant ouverture' : entry.hour === 'amc' ? 'Après clôture' : ''}</span></span>
+        </a>`).join('');
+
+    latestEl.innerHTML = latest.length === 0
+      ? '<p style="color: var(--text3); font-size: 12px;">Aucun résultat récent disponible.</p>'
+      : latest.slice(0, 6).map(({ company, entry }) => {
+        const status = beatOrMiss(entry.epsActual, entry.epsEstimate);
+        const statusLabel = status === 'beat' ? '↑ Au-dessus des attentes' : status === 'miss' ? '↓ En dessous des attentes' : '';
+        return `
+          <a href="analyse.html#company-${company.slug}" class="card earnings-item">
+            <div class="earnings-item-left">
+              <span class="earnings-company">${company.name}</span>
+              <span class="earnings-date">${formatEarningsDate(entry.date)} · T${entry.quarter} ${entry.year}</span>
+            </div>
+            <span class="earnings-figures">
+              <span>EPS ${entry.epsActual ?? '–'} / est. ${entry.epsEstimate ?? '–'}</span>
+              ${statusLabel ? `<span class="${status}">${statusLabel}</span>` : ''}
+            </span>
+          </a>`;
+      }).join('');
+  } catch (err) {
+    upcomingEl.innerHTML = `<p style="color: var(--red); font-size: 12px;">Erreur : ${err.message}</p>`;
+    latestEl.innerHTML = '';
+  }
+}
+
 function refreshHome() {
   loadNewsBlock('priority-list', 'actualité importante France monde', { count: 3, rssFeed: 'lemonde' });
   loadNewsBlock('highlight-list', 'découverte OR avancée scientifique OR record positif', { count: 3 });
   loadSectors();
+  loadEarnings();
 }
 
 window.juBoardRefresh = refreshHome;

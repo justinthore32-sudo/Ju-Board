@@ -168,6 +168,34 @@ async function handleRss(request, env) {
   }
 }
 
+async function handleEarnings(request, env) {
+  const url = new URL(request.url);
+  const symbolsParam = url.searchParams.get('symbols') || '';
+  const symbols = symbolsParam.split(',').map((s) => s.trim()).filter(Boolean);
+
+  const today = new Date();
+  const from = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const to = new Date(today.getTime() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const results = await Promise.all(
+    symbols.map(async (symbol) => {
+      try {
+        const finnhubUrl = `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&symbol=${encodeURIComponent(symbol)}&token=${env.FINNHUB_KEY}`;
+        const resp = await fetch(finnhubUrl);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        return { symbol, entries: data.earningsCalendar || [] };
+      } catch (err) {
+        return { symbol, entries: [], error: err.message };
+      }
+    })
+  );
+
+  return new Response(JSON.stringify({ status: 'ok', results }), {
+    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -191,6 +219,9 @@ export default {
       }
       if (url.pathname === '/api/rss' && request.method === 'GET') {
         return await handleRss(request, env);
+      }
+      if (url.pathname === '/api/earnings' && request.method === 'GET') {
+        return await handleEarnings(request, env);
       }
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {
