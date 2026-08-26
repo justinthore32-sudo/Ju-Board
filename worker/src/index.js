@@ -75,6 +75,14 @@ async function handleTopHeadlines(request, env) {
 
 const ALLOWED_SORT = new Set(['publishedAt', 'popularity', 'relevancy']);
 
+/* Médias reconnus uniquement — évite les blogs obscurs remontés par
+   défaut par la recherche NewsAPI "everything". */
+const TRUSTED_DOMAINS = [
+  'lemonde.fr', 'lesechos.fr', 'lefigaro.fr', 'liberation.fr',
+  'francetvinfo.fr', 'bfmtv.com', 'ouest-france.fr', 'lepoint.fr',
+  'capital.fr', 'courrierinternational.com', 'la-croix.com', 'challenges.fr'
+].join(',');
+
 async function handleNews(request, env) {
   const url = new URL(request.url);
   const q = url.searchParams.get('q') || 'monde';
@@ -82,8 +90,10 @@ async function handleNews(request, env) {
   const sortBy = ALLOWED_SORT.has(sortByParam) ? sortByParam : 'publishedAt';
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
   const from = url.searchParams.get('from');
+  const domains = url.searchParams.get('domains') || TRUSTED_DOMAINS;
 
   let newsUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=fr&sortBy=${sortBy}&pageSize=20&page=${page}&apiKey=${env.NEWSAPI_KEY}`;
+  if (domains) newsUrl += `&domains=${encodeURIComponent(domains)}`;
   if (from) newsUrl += `&from=${encodeURIComponent(from)}`;
 
   const resp = await fetch(newsUrl, {
