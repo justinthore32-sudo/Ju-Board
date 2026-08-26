@@ -30,6 +30,12 @@ async function fetchNews(query) {
   return resp.json();
 }
 
+async function fetchTopHeadlines(category = 'general') {
+  const resp = await fetch(`${PROXY_URL}/api/top-headlines?category=${encodeURIComponent(category)}&country=fr`);
+  if (!resp.ok) throw new Error(`Erreur NewsAPI (${resp.status})`);
+  return resp.json();
+}
+
 /* ---------- OPENWEATHERMAP (via proxy) ---------- */
 async function fetchWeather(lat, lon) {
   const resp = await fetch(`${PROXY_URL}/api/weather?lat=${lat}&lon=${lon}`);

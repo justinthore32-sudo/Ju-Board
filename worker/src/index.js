@@ -56,6 +56,23 @@ async function handleWeather(request, env) {
   });
 }
 
+async function handleTopHeadlines(request, env) {
+  const url = new URL(request.url);
+  const category = url.searchParams.get('category') || 'general';
+  const country = url.searchParams.get('country') || 'fr';
+
+  const newsUrl = `https://newsapi.org/v2/top-headlines?category=${encodeURIComponent(category)}&country=${encodeURIComponent(country)}&pageSize=10&apiKey=${env.NEWSAPI_KEY}`;
+  const resp = await fetch(newsUrl, {
+    headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' }
+  });
+  const data = await resp.json();
+
+  return new Response(JSON.stringify(data), {
+    status: resp.status,
+    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
+  });
+}
+
 async function handleNews(request, env) {
   const url = new URL(request.url);
   const q = url.searchParams.get('q') || 'monde';
@@ -86,6 +103,9 @@ export default {
       }
       if (url.pathname === '/api/news' && request.method === 'GET') {
         return await handleNews(request, env);
+      }
+      if (url.pathname === '/api/top-headlines' && request.method === 'GET') {
+        return await handleTopHeadlines(request, env);
       }
       if (url.pathname === '/api/weather' && request.method === 'GET') {
         return await handleWeather(request, env);

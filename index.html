@@ -62,40 +62,9 @@
         <span class="priority-badge">Priorité absolue</span>
       </div>
 
-      <div class="priority-news">
-        <div class="news-meta">
-          <span class="sector-badge">💰 Économie</span>
-          <span>Reuters · il y a 2h</span>
-        </div>
-        <h3 class="news-title">La Fed signale une possible pause dans les baisses de taux</h3>
-        <p class="news-summary">Les marchés réagissent à un discours plus prudent que prévu. Les obligations à long terme sous pression.</p>
-        <div class="indicator down">
-          <span>↓ Impact négatif estimé</span>
-        </div>
-      </div>
-
-      <div class="priority-news">
-        <div class="news-meta">
-          <span class="sector-badge">🌍 Géopolitique</span>
-          <span>Le Monde · il y a 4h</span>
-        </div>
-        <h3 class="news-title">Nouvelles sanctions annoncées après l'escalade en mer Rouge</h3>
-        <p class="news-summary">Les compagnies maritimes réévaluent leurs routes. Tensions sur le prix du fret mondial.</p>
-        <div class="indicator neutral">
-          <span>→ Impact mixte estimé</span>
-        </div>
-      </div>
-
-      <div class="priority-news">
-        <div class="news-meta">
-          <span class="sector-badge">💻 Tech &amp; IA</span>
-          <span>Bloomberg · il y a 6h</span>
-        </div>
-        <h3 class="news-title">Un nouveau modèle IA bat les records de benchmarks scientifiques</h3>
-        <p class="news-summary">L'annonce relance le débat sur la course à l'IA générale entre grands laboratoires.</p>
-        <div class="indicator up">
-          <span>↑ Impact positif estimé</span>
-        </div>
+      <div id="priority-list">
+        <div class="skeleton" style="height: 90px; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 90px;"></div>
       </div>
     </div>
   </section>
@@ -105,31 +74,9 @@
     <div class="highlight-box">
       <span class="highlight-title">✨ À ne pas manquer</span>
 
-      <div class="priority-news">
-        <div class="news-meta">
-          <span class="sector-badge">💊 Santé</span>
-          <span>OMS · il y a 3h</span>
-        </div>
-        <h3 class="news-title">Un vaccin universel contre la grippe entre en phase 3</h3>
-        <p class="news-summary">Résultats préliminaires prometteurs sur plus de 10 000 patients dans six pays.</p>
-      </div>
-
-      <div class="priority-news">
-        <div class="news-meta">
-          <span class="sector-badge">🚀 Spatial</span>
-          <span>NASA · il y a 8h</span>
-        </div>
-        <h3 class="news-title">Record de durée pour une mission privée en orbite basse</h3>
-        <p class="news-summary">L'équipage a validé de nouveaux protocoles pour les futures missions lunaires.</p>
-      </div>
-
-      <div class="priority-news">
-        <div class="news-meta">
-          <span class="sector-badge">🌱 Environnement</span>
-          <span>Reuters · il y a 10h</span>
-        </div>
-        <h3 class="news-title">La reforestation dépasse les objectifs fixés en Amazonie brésilienne</h3>
-        <p class="news-summary">Une baisse de la déforestation illégale portée par de nouveaux outils satellitaires.</p>
+      <div id="highlight-list">
+        <div class="skeleton" style="height: 90px; margin-bottom: 12px;"></div>
+        <div class="skeleton" style="height: 90px;"></div>
       </div>
     </div>
   </section>
@@ -137,57 +84,17 @@
   <!-- ===== SECTEURS ===== -->
   <section class="section" style="margin-bottom: 24px;">
     <h2 class="section-title">Secteurs</h2>
-    <div class="sectors-grid">
-      <a href="news.html?secteur=economie" class="card sector-card">
-        <span class="sector-icon">💰</span>
-        <span class="sector-name">Économie</span>
-        <span class="sector-headline">La Fed signale une possible pause dans les baisses de taux</span>
-      </a>
-      <a href="news.html?secteur=geopolitique" class="card sector-card">
-        <span class="sector-icon">🌍</span>
-        <span class="sector-name">Géopolitique</span>
-        <span class="sector-headline">Nouvelles sanctions après l'escalade en mer Rouge</span>
-      </a>
-      <a href="news.html?secteur=tech" class="card sector-card">
-        <span class="sector-icon">💻</span>
-        <span class="sector-name">Tech &amp; IA</span>
-        <span class="sector-headline">Un nouveau modèle IA bat les records de benchmarks</span>
-      </a>
-      <a href="news.html?secteur=environnement" class="card sector-card">
-        <span class="sector-icon">🌱</span>
-        <span class="sector-name">Environnement</span>
-        <span class="sector-headline">La reforestation dépasse les objectifs en Amazonie</span>
-      </a>
-      <a href="news.html?secteur=politique" class="card sector-card">
-        <span class="sector-icon">🏛️</span>
-        <span class="sector-name">Politique</span>
-        <span class="sector-headline">Un nouveau texte de régulation examiné au Parlement européen</span>
-      </a>
-      <a href="news.html?secteur=sante" class="card sector-card">
-        <span class="sector-icon">💊</span>
-        <span class="sector-name">Santé</span>
-        <span class="sector-headline">Un vaccin universel contre la grippe entre en phase 3</span>
-      </a>
-      <a href="news.html?secteur=spatial" class="card sector-card">
-        <span class="sector-icon">🚀</span>
-        <span class="sector-name">Spatial</span>
-        <span class="sector-headline">Record de durée pour une mission privée en orbite basse</span>
-      </a>
-      <a href="news.html?secteur=energie" class="card sector-card">
-        <span class="sector-icon">⚡</span>
-        <span class="sector-name">Énergie</span>
-        <span class="sector-headline">Nouvelle capacité solaire record installée ce trimestre</span>
-      </a>
-      <a href="news.html?secteur=histoire" class="card sector-card">
-        <span class="sector-icon">📚</span>
-        <span class="sector-name">Histoire</span>
-        <span class="sector-headline">Il y a 35 ans : la chute du mur de Berlin, quel écho aujourd'hui ?</span>
-      </a>
-      <a href="news.html?secteur=societe" class="card sector-card">
-        <span class="sector-icon">🎭</span>
-        <span class="sector-name">Société</span>
-        <span class="sector-headline">Une étude révèle un changement générationnel dans le rapport au travail</span>
-      </a>
+    <div class="sectors-grid" id="sectors-grid">
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
+      <div class="card sector-card skeleton" style="height: 90px;"></div>
     </div>
   </section>
 
@@ -206,5 +113,6 @@
 
 <script src="js/api.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/home.js"></script>
 </body>
 </html>
