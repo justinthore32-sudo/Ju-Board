@@ -1,7 +1,7 @@
 /* ============================================
    JU BOARD — news.js
-   Page News : filtres, tri, chargement des vraies
-   actualités via le Worker proxy (NewsAPI)
+   Page News : filtres, tri réel, pagination et
+   chargement des vraies actualités (NewsAPI)
    ============================================ */
 
 const SUBDOMAINS = {
@@ -37,13 +37,17 @@ const DOMAIN_LABELS = {
   spatial: '🚀 Spatial', energie: '⚡ Énergie', histoire: '📚 Histoire', societe: '🎭 Société'
 };
 
+const SORT_MAP = { recent: 'publishedAt', important: 'popularity', impact: 'relevancy' };
+
 let currentPage = 1;
-let currentArticles = [];
+let currentSort = 'recent';
+let lastTotalResults = 0;
+let loadedCount = 0;
 
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const mins = Math.round(diffMs / 60000);
-  if (mins < 60) return `Il y a ${mins} min`;
+  if (mins < 60) return `Il y a ${Math.max(mins, 1)} min`;
   const hours = Math.round(mins / 60);
   if (hours < 24) return `Il y a ${hours}h`;
   const days = Math.round(hours / 24);
@@ -80,6 +84,7 @@ async function loadNews(append = false) {
 
   if (!append) {
     currentPage = 1;
+    loadedCount = 0;
     list.innerHTML = `
       <div class="skeleton" style="height: 180px; margin-bottom: 14px;"></div>
       <div class="skeleton" style="height: 180px; margin-bottom: 14px;"></div>
@@ -87,6 +92,7 @@ async function loadNews(append = false) {
   }
 
   const { query, domain } = buildQuery();
+  const sortBy = SORT_MAP[currentSort] || 'publishedAt';
 
   if (typeof fetchNews !== 'function') {
     list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">API News non configurée.</p>';
@@ -94,14 +100,13 @@ async function loadNews(append = false) {
   }
 
   try {
-    const data = await fetchNews(query);
+    const data = await fetchNews(query, { sortBy, page: currentPage });
     if (data.status !== 'ok') throw new Error(data.message || 'Erreur inconnue');
 
     const articles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]');
+    lastTotalResults = data.totalResults || 0;
 
-    if (!append) currentArticles = articles;
-
-    if (articles.length === 0) {
+    if (!append && articles.length === 0) {
       list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Aucune actualité trouvée pour ce filtre.</p>';
       loadMoreBtn.classList.add('hidden');
       return;
@@ -109,10 +114,23 @@ async function loadNews(append = false) {
 
     const html = articles.map((a) => renderArticle(a, domain)).join('');
     list.innerHTML = append ? list.innerHTML + html : html;
-    loadMoreBtn.classList.remove('hidden');
+    loadedCount += articles.length;
+
+    loadMoreBtn.classList.toggle('hidden', loadedCount >= lastTotalResults || articles.length === 0);
   } catch (err) {
     list.innerHTML = `<p style="color: var(--red); font-size: 13px;">Erreur de chargement : ${err.message}</p>`;
   }
+}
+
+function applySectorFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const secteur = params.get('secteur');
+  if (!secteur) return false;
+  const domainSelect = document.getElementById('domain-select');
+  if (!domainSelect || !DOMAIN_QUERIES[secteur]) return false;
+  domainSelect.value = secteur;
+  domainSelect.dispatchEvent(new Event('change'));
+  return true;
 }
 
 function initDomainFilter() {
@@ -146,6 +164,7 @@ function initSortTabs() {
     tab.addEventListener('click', () => {
       tabs.forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
+      currentSort = tab.dataset.sort;
       loadNews();
     });
   });
@@ -155,13 +174,21 @@ function initLoadMore() {
   const btn = document.getElementById('load-more');
   if (!btn) return;
   btn.addEventListener('click', () => {
-    showToast('Toutes les news du moment sont affichées');
+    currentPage += 1;
+    loadNews(true);
   });
 }
+
+function refreshNews() {
+  loadNews();
+}
+
+window.juBoardRefresh = refreshNews;
 
 document.addEventListener('DOMContentLoaded', () => {
   initDomainFilter();
   initSortTabs();
   initLoadMore();
-  loadNews();
+  const appliedFromUrl = applySectorFromUrl();
+  if (!appliedFromUrl) loadNews();
 });

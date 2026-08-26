@@ -88,8 +88,21 @@ function initCycleChart() {
   });
 }
 
+function scrollToHashCompany() {
+  if (!window.location.hash) return;
+  const target = document.querySelector(window.location.hash);
+  if (!target) return;
+  window.setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.style.transition = 'box-shadow 0.3s';
+    target.style.boxShadow = '0 0 0 3px var(--accent)';
+    window.setTimeout(() => { target.style.boxShadow = ''; }, 1800);
+  }, 150);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCategoryTabs();
   initDeepToggle();
   initCycleChart();
+  scrollToHashCompany();
 });

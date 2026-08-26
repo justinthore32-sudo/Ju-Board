@@ -24,9 +24,18 @@ async function callClaude(messages, { system, maxTokens = 1000 } = {}) {
 }
 
 /* ---------- NEWSAPI (via proxy) ---------- */
-async function fetchNews(query) {
-  const resp = await fetch(`${PROXY_URL}/api/news?q=${encodeURIComponent(query)}`);
+async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from } = {}) {
+  const params = new URLSearchParams({ q: query, sortBy, page });
+  if (from) params.set('from', from);
+  const resp = await fetch(`${PROXY_URL}/api/news?${params.toString()}`);
   if (!resp.ok) throw new Error(`Erreur NewsAPI (${resp.status})`);
+  return resp.json();
+}
+
+/* ---------- FLUX RSS (via proxy) ---------- */
+async function fetchRss(feedKey) {
+  const resp = await fetch(`${PROXY_URL}/api/rss?feed=${encodeURIComponent(feedKey)}`);
+  if (!resp.ok) throw new Error(`Erreur RSS (${resp.status})`);
   return resp.json();
 }
 

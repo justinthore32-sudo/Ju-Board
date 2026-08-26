@@ -83,38 +83,11 @@
     <p class="result-excerpt" id="ai-answer-text"></p>
   </div>
 
-  <p class="results-meta" id="results-meta">4 résultats pour « quantitative tightening »</p>
+  <p class="results-meta hidden" id="results-meta"></p>
 
-  <section class="section news-list">
-    <article class="card result-item">
-      <span class="result-type">News</span>
-      <h3 class="result-title">La Fed signale une possible pause dans les baisses de taux</h3>
-      <p class="result-excerpt">…un discours plus prudent que prévu de la présidente de la Fed, dans un contexte de <mark>quantitative tightening</mark> toujours actif…</p>
-    </article>
+  <section class="section news-list" id="results-list"></section>
 
-    <article class="card result-item">
-      <span class="result-type">Définition</span>
-      <h3 class="result-title">Quantitative tightening (QT)</h3>
-      <p class="result-excerpt">Politique monétaire par laquelle une banque centrale réduit la taille de son bilan, à l'inverse du quantitative easing — généralement en laissant arriver à échéance les obligations détenues sans les remplacer.</p>
-    </article>
-
-    <article class="card result-item">
-      <span class="result-type">Analyse</span>
-      <h3 class="result-title">JPMorgan Chase — Cycle Finance</h3>
-      <p class="result-excerpt">…la marge nette d'intérêt reste soutenue par le contexte de taux actuel, mais sensible à un ralentissement du <mark>quantitative tightening</mark>…</p>
-    </article>
-
-    <article class="card result-item">
-      <span class="result-type">News</span>
-      <h3 class="result-title">Nouvelles sanctions annoncées après l'escalade en mer Rouge</h3>
-      <p class="result-excerpt">…les tensions sur le fret s'ajoutent à un climat de resserrement monétaire mondial…</p>
-    </article>
-  </section>
-
-  <div class="pagination">
-    <button class="page-btn active">1</button>
-    <button class="page-btn">2</button>
-  </div>
+  <div class="pagination hidden" id="pagination"></div>
 
 </main>
 
@@ -128,7 +101,10 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="js/api.js"></script>
+<script src="js/search.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/recherche.js"></script>
+<script src="js/interactions.js"></script>
 </body>
 </html>
