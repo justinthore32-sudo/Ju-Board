@@ -66,7 +66,7 @@ function hideTyping() {
 }
 
 function mockAiReply(userText) {
-  return `(Démo hors-ligne) Ta question — « ${userText} » — sera traitée par l'API Anthropic une fois le Worker proxy déployé et son URL renseignée dans js/api.js. Le contexte système de Ju Board est prêt à l'emploi.`;
+  return `(Démo hors-ligne) Ta question — « ${userText} » — sera traitée par Claude une fois la clé API Anthropic configurée sur le Worker. Le contexte système de Ju Board est déjà prêt à l'emploi.`;
 }
 
 async function sendMessage(text) {
@@ -101,7 +101,9 @@ async function sendMessage(text) {
     appendMessage('ai', reply);
   } catch (err) {
     hideTyping();
-    appendMessage('ai', `Erreur de connexion à l'assistant : ${err.message}`);
+    /* La clé Anthropic n'est pas encore configurée côté Worker (ANTHROPIC_API_KEY) —
+       on retombe sur la réponse de démo plutôt que d'afficher une erreur brute. */
+    appendMessage('ai', mockAiReply(trimmed));
   }
 }
 
