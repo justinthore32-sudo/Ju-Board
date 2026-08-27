@@ -124,9 +124,10 @@ async function callClaude(messages, { system, maxTokens = 1000 } = {}) {
 }
 
 /* ---------- NEWSAPI (via proxy) ---------- */
-async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from } = {}) {
+async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from, domains } = {}) {
   const params = new URLSearchParams({ q: query, sortBy, page });
   if (from) params.set('from', from);
+  if (domains) params.set('domains', domains);
   const resp = await apiFetch(`/api/news?${params.toString()}`);
   if (!resp.ok) throw new Error(`Erreur NewsAPI (${resp.status})`);
   return resp.json();

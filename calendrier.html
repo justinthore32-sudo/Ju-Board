@@ -6,7 +6,7 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Assistant — Ju Board</title>
+<title>Calendrier des résultats — Ju Board</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
@@ -24,7 +24,7 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/pages.css">
 </head>
-<body class="chat-page">
+<body>
 
 <header class="header">
   <a href="index.html" class="logo">Ju Board</a>
@@ -54,44 +54,38 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 </header>
 
 <main class="container">
-  <div class="chat-window" id="chat-window">
+  <h1 class="section-title" style="font-family: var(--font-serif); font-size: 28px; margin-top: 20px;">Calendrier des résultats</h1>
+  <p style="font-size: 13px; color: var(--text3); margin-top: -6px;">Les géants tech sont toujours affichés, avec ou sans date proche.</p>
 
-    <div class="chat-msg ai">
-      <div class="chat-avatar">JB</div>
-      <div class="chat-bubble">Bonjour Justin. Pose-moi n'importe quelle question sur le monde — géopolitique, économie, histoire, science, tech. Je suis là pour t'aider à comprendre ce qui se passe.</div>
-    </div>
-
-    <div class="chat-suggestions" id="chat-suggestions">
-      <button class="suggestion-chip">Explique moi la guerre en Ukraine et ses impacts économiques</button>
-      <button class="suggestion-chip">Qu'est-ce que le quantitative tightening et pourquoi c'est important ?</button>
-      <button class="suggestion-chip">Pourquoi la Chine et les USA sont en tension sur Taiwan ?</button>
-      <button class="suggestion-chip">Comment l'IA va changer le marché du travail dans 10 ans ?</button>
-    </div>
-
+  <div class="sort-tabs" style="margin-top:16px;">
+    <button class="sort-tab active" data-tab="upcoming">À venir</button>
+    <button class="sort-tab" data-tab="latest">Précédent</button>
   </div>
+
+  <section class="section" id="tab-upcoming">
+    <h2 class="section-title" style="font-size:15px;">🏆 Géants Tech</h2>
+    <div class="table-wrap"><table class="cal-table" id="table-tech-upcoming"></table></div>
+
+    <h2 class="section-title" style="font-size:15px; margin-top:22px;">Autres entreprises</h2>
+    <div class="table-wrap"><table class="cal-table" id="table-other-upcoming"></table></div>
+  </section>
+
+  <section class="section hidden" id="tab-latest" style="margin-bottom:32px;">
+    <h2 class="section-title" style="font-size:15px;">🏆 Géants Tech</h2>
+    <div class="table-wrap"><table class="cal-table" id="table-tech-latest"></table></div>
+
+    <h2 class="section-title" style="font-size:15px; margin-top:22px;">Autres entreprises</h2>
+    <div class="table-wrap"><table class="cal-table" id="table-other-latest"></table></div>
+  </section>
 </main>
-
-<div class="chat-input-bar">
-  <input type="text" id="chat-input" placeholder="Écris ton message…" autocomplete="off">
-  <button class="chat-send-btn" id="chat-send" aria-label="Envoyer">➤</button>
-</div>
-
-<nav class="bottom-nav">
-  <a href="index.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg> <span>Accueil</span></a>
-  <a href="news.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V4z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><path d="M8 8h5M8 12h5M8 16h3"/></svg> <span>News</span></a>
-  <a href="analyse.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg> <span>Analyse</span></a>
-  <a href="recherche.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> <span>Recherche</span></a>
-  <a href="assistant.html" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="12" rx="3"/><path d="M9 21l3-4 3 4"/><path d="M9 10h.01M15 10h.01"/></svg> <span>Assistant</span></a>
-</nav>
 
 <div class="toast" id="toast"></div>
 
 <script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/calendar-widget.js"></script>
 <script src="js/search.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
-<script src="js/assistant.js"></script>
+<script src="js/calendrier.js"></script>
 <script src="js/interactions.js"></script>
 </body>
 </html>
