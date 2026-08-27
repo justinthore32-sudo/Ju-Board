@@ -107,7 +107,6 @@ async function loadSectors() {
 function refreshHome() {
   loadNewsBlock('priority-list', 'marchés OR bourse OR taux OR inflation OR résultats OR Fed OR BCE OR fusion OR acquisition', {
     count: 6,
-    rssFeed: 'lemonde',
     domains: 'lesechos.fr,capital.fr,challenges.fr'
   });
   loadNewsBlock('highlight-list', 'découverte OR avancée scientifique OR record positif', { count: 3 });
