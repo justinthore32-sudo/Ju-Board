@@ -277,21 +277,55 @@ async function handleWeather(request, env) {
   });
 }
 
-async function handleTopHeadlines(request, env) {
+/* ---------- CACHE EDGE (Cache API) ----------
+   NewsAPI/Finnhub gratuits ont des quotas très bas (NewsAPI : 50 req/12h).
+   La page d'accueil déclenche à elle seule ~13 requêtes NewsAPI à chaque
+   chargement — sans cache le quota est épuisé en 2-3 visites. On met en
+   cache la réponse brute par URL de requête (donc par combinaison de
+   paramètres) pendant `ttlSeconds`, et on ne cache jamais les erreurs. */
+async function cachedJsonFetch(cacheKeyUrl, fetchUrl, fetchOptions, env, ctx, ttlSeconds) {
+  const cache = caches.default;
+  const cacheKey = new Request(cacheKeyUrl, { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, {
+      status: cached.status,
+      headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'HIT' }
+    });
+  }
+
+  const resp = await fetch(fetchUrl, fetchOptions);
+  const data = await resp.text();
+
+  if (resp.ok) {
+    const toCache = new Response(data, {
+      status: resp.status,
+      headers: { 'content-type': 'application/json', 'Cache-Control': `max-age=${ttlSeconds}` }
+    });
+    ctx.waitUntil(cache.put(cacheKey, toCache));
+  }
+
+  return new Response(data, {
+    status: resp.status,
+    headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' }
+  });
+}
+
+async function handleTopHeadlines(request, env, ctx) {
   const url = new URL(request.url);
   const category = url.searchParams.get('category') || 'general';
   const country = url.searchParams.get('country') || 'fr';
 
   const newsUrl = `https://newsapi.org/v2/top-headlines?category=${encodeURIComponent(category)}&country=${encodeURIComponent(country)}&pageSize=10&apiKey=${env.NEWSAPI_KEY}`;
-  const resp = await fetch(newsUrl, {
-    headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' }
-  });
-  const data = await resp.json();
-
-  return new Response(JSON.stringify(data), {
-    status: resp.status,
-    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
-  });
+  return cachedJsonFetch(
+    url.toString(),
+    newsUrl,
+    { headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' } },
+    env,
+    ctx,
+    30 * 60
+  );
 }
 
 const ALLOWED_SORT = new Set(['publishedAt', 'popularity', 'relevancy']);
@@ -304,7 +338,7 @@ const TRUSTED_DOMAINS = [
   'capital.fr', 'courrierinternational.com', 'la-croix.com', 'challenges.fr'
 ].join(',');
 
-async function handleNews(request, env) {
+async function handleNews(request, env, ctx) {
   const url = new URL(request.url);
   const q = url.searchParams.get('q') || 'monde';
   const sortByParam = url.searchParams.get('sortBy');
@@ -317,15 +351,14 @@ async function handleNews(request, env) {
   if (domains) newsUrl += `&domains=${encodeURIComponent(domains)}`;
   if (from) newsUrl += `&from=${encodeURIComponent(from)}`;
 
-  const resp = await fetch(newsUrl, {
-    headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' }
-  });
-  const data = await resp.json();
-
-  return new Response(JSON.stringify(data), {
-    status: resp.status,
-    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
-  });
+  return cachedJsonFetch(
+    url.toString(),
+    newsUrl,
+    { headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' } },
+    env,
+    ctx,
+    20 * 60
+  );
 }
 
 const RSS_FEEDS = {
@@ -360,7 +393,7 @@ function parseRss(xml, sourceName) {
   return items;
 }
 
-async function handleRss(request, env) {
+async function handleRss(request, env, ctx) {
   const url = new URL(request.url);
   const feedKey = url.searchParams.get('feed') || '';
   const feed = RSS_FEEDS[feedKey];
@@ -372,6 +405,14 @@ async function handleRss(request, env) {
     });
   }
 
+  const cache = caches.default;
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, { headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'HIT' } });
+  }
+
   try {
     const resp = await fetch(feed.url, {
       headers: { 'User-Agent': 'JuBoard/1.0 (+https://justinthore32-sudo.github.io/Ju-Board/)' }
@@ -379,8 +420,10 @@ async function handleRss(request, env) {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const xml = await resp.text();
     const articles = parseRss(xml, feed.name).slice(0, 15);
-    return new Response(JSON.stringify({ status: 'ok', source: feedKey, articles }), {
-      headers: { ...corsHeaders(env), 'content-type': 'application/json' }
+    const payload = JSON.stringify({ status: 'ok', source: feedKey, articles });
+    ctx.waitUntil(cache.put(cacheKey, new Response(payload, { headers: { 'content-type': 'application/json', 'Cache-Control': 'max-age=600' } })));
+    return new Response(payload, {
+      headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' }
     });
   } catch (err) {
     return new Response(JSON.stringify({ status: 'error', message: err.message, source: feedKey, articles: [] }), {
@@ -389,10 +432,18 @@ async function handleRss(request, env) {
   }
 }
 
-async function handleEarnings(request, env) {
+async function handleEarnings(request, env, ctx) {
   const url = new URL(request.url);
   const symbolsParam = url.searchParams.get('symbols') || '';
   const symbols = symbolsParam.split(',').map((s) => s.trim()).filter(Boolean);
+
+  const cache = caches.default;
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, { headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'HIT' } });
+  }
 
   const today = new Date();
   const from = new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -412,8 +463,10 @@ async function handleEarnings(request, env) {
     })
   );
 
-  return new Response(JSON.stringify({ status: 'ok', results }), {
-    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
+  const payload = JSON.stringify({ status: 'ok', results });
+  ctx.waitUntil(cache.put(cacheKey, new Response(payload, { headers: { 'content-type': 'application/json', 'Cache-Control': 'max-age=10800' } })));
+  return new Response(payload, {
+    headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' }
   });
 }
 
@@ -461,19 +514,19 @@ export default {
         return await handleClaude(request, env);
       }
       if (url.pathname === '/api/news' && request.method === 'GET') {
-        return await handleNews(request, env);
+        return await handleNews(request, env, ctx);
       }
       if (url.pathname === '/api/top-headlines' && request.method === 'GET') {
-        return await handleTopHeadlines(request, env);
+        return await handleTopHeadlines(request, env, ctx);
       }
       if (url.pathname === '/api/weather' && request.method === 'GET') {
         return await handleWeather(request, env);
       }
       if (url.pathname === '/api/rss' && request.method === 'GET') {
-        return await handleRss(request, env);
+        return await handleRss(request, env, ctx);
       }
       if (url.pathname === '/api/earnings' && request.method === 'GET') {
-        return await handleEarnings(request, env);
+        return await handleEarnings(request, env, ctx);
       }
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {

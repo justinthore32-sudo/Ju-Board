@@ -129,7 +129,10 @@ async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from, domain
   if (from) params.set('from', from);
   if (domains) params.set('domains', domains);
   const resp = await apiFetch(`/api/news?${params.toString()}`);
-  if (!resp.ok) throw new Error(`Erreur NewsAPI (${resp.status})`);
+  if (!resp.ok) {
+    if (resp.status === 429) throw new Error('Quota NewsAPI atteint, réessaie dans quelques minutes');
+    throw new Error(`Erreur NewsAPI (${resp.status})`);
+  }
   return resp.json();
 }
 

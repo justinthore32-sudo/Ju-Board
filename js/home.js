@@ -52,9 +52,10 @@ async function loadNewsBlock(containerId, query, { count = 3, rssFeed, domains }
   const container = document.getElementById(containerId);
   if (!container || typeof fetchNews !== 'function') return;
 
+  let newsFailed = false;
   try {
     const [newsData, rssData] = await Promise.all([
-      fetchNews(query, { sortBy: 'publishedAt', domains }).catch(() => ({ status: 'error', articles: [] })),
+      fetchNews(query, { sortBy: 'publishedAt', domains }).catch(() => { newsFailed = true; return { status: 'error', articles: [] }; }),
       rssFeed && typeof fetchRss === 'function' ? fetchRss(rssFeed).catch(() => ({ status: 'error', articles: [] })) : Promise.resolve({ status: 'error', articles: [] })
     ]);
 
@@ -66,7 +67,9 @@ async function loadNewsBlock(containerId, query, { count = 3, rssFeed, domains }
       .slice(0, count);
 
     if (merged.length === 0) {
-      container.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Aucune actualité disponible pour le moment.</p>';
+      container.innerHTML = newsFailed
+        ? '<p style="color: var(--gold); font-size: 13px;">⚠️ Actualités temporairement indisponibles (quota NewsAPI atteint) — réessaie dans quelques minutes.</p>'
+        : '<p style="color: var(--text3); font-size: 13px;">Aucune actualité disponible pour le moment.</p>';
       return;
     }
     container.innerHTML = merged.map(renderNewsBlock).join('');
