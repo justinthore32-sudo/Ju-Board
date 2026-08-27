@@ -167,9 +167,11 @@ async function fetchWeather(lat, lon) {
 
 /* ---------- LIEN VERS LA FICHE INTERNE (au lieu de l'article externe direct) ---------- */
 function buildArticleUrl(article, timeLabel) {
+  const cleanContent = (article.content || '').replace(/\s*\[\+\d+ chars\]$/, '');
   const params = new URLSearchParams({
     title: article.title || '',
     description: article.description || '',
+    content: cleanContent,
     source: article.source?.name || 'Actualité',
     url: article.url || '',
     time: timeLabel || ''

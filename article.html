@@ -61,15 +61,17 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 
   <p class="news-summary" style="margin-top: 14px; font-size: 15px;" id="article-summary">Résumé…</p>
 
+  <p class="news-summary hidden" id="article-content" style="margin-top: 10px; font-size: 14px; color: var(--text2);"></p>
+
   <section class="section">
-    <div class="deep-block-title">Analyse d'impact</div>
+    <div class="deep-block-title">Comprendre les enjeux</div>
     <div class="impact-detail">
-      <p style="font-size: 13px; color: var(--text3);">🤖 L'analyse d'impact (direction, ampleur, scénarios, secteurs concernés) sera générée automatiquement ici une fois l'API Anthropic branchée sur Ju Board. Pour l'instant, cette fiche affiche uniquement le contenu brut de la news.</p>
+      <p style="font-size: 13px; color: var(--text3);">🤖 Cette fiche affiche pour l'instant le texte brut de la news (NewsAPI ne fournit pas l'article complet sur le plan gratuit — seulement un extrait). L'analyse des enjeux, de l'impact et des scénarios sera générée ici automatiquement une fois l'API Anthropic branchée sur Ju Board. En attendant, l'article source ci-dessous donne le contexte complet.</p>
     </div>
   </section>
 
   <section class="section" style="margin-bottom: 32px;">
-    <a id="article-source-link" href="#" target="_blank" rel="noopener" class="btn" style="display:inline-flex;">Voir l'article source ↗</a>
+    <a id="article-source-link" href="#" target="_blank" rel="noopener" class="btn" style="display:inline-flex;">Lire l'article complet sur la source ↗</a>
   </section>
 </main>
 
@@ -86,6 +88,15 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
     document.getElementById('article-summary').textContent = params.get('description') || 'Pas de résumé disponible.';
     document.getElementById('article-source').textContent = params.get('source') || 'Actualité';
     document.getElementById('article-time').textContent = params.get('time') || '';
+
+    const content = params.get('content');
+    const description = params.get('description') || '';
+    if (content && content.trim() && content.trim() !== description.trim()) {
+      const contentEl = document.getElementById('article-content');
+      contentEl.textContent = content;
+      contentEl.classList.remove('hidden');
+    }
+
     const url = params.get('url') || '#';
     document.getElementById('article-source-link').href = url;
   }
