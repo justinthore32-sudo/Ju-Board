@@ -29,7 +29,7 @@
   font-family: var(--font-serif);
   font-weight: 800;
   font-style: italic;
-  font-size: 19px;
+  font-size: 17px;
   color: var(--primary);
   white-space: nowrap;
 }
@@ -50,7 +50,7 @@
 
 .search-bar input {
   width: 100%;
-  padding: 6px 12px;
+  padding: 4px 12px;
   border-radius: 99px;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -199,8 +199,8 @@
 }
 
 .theme-switch {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
