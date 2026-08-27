@@ -61,7 +61,7 @@ async function runSearch(query) {
       const data = await fetchNews(query, { sortBy: 'relevancy' });
       const articles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]').slice(0, 4);
       newsHtml = articles.map((a) => `
-        <a class="search-result" href="${a.url}" target="_blank" rel="noopener">
+        <a class="search-result" href="${buildArticleUrl(a)}">
           <span class="search-result-title">${escapeHtml(a.title)}</span>
           <span class="search-result-meta">${a.source?.name || ''}</span>
         </a>`);

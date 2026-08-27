@@ -11,9 +11,149 @@ const DEFAULT_MODEL = 'claude-sonnet-4-6';
 function corsHeaders(env) {
   return {
     'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   };
+}
+
+function jsonResponse(data, env, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
+  });
+}
+
+/* ---------- AUTHENTIFICATION ---------- */
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function randomHex(byteLength) {
+  return bytesToHex(crypto.getRandomValues(new Uint8Array(byteLength)));
+}
+
+async function hashPassword(password, saltHex) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const saltBytes = new Uint8Array(saltHex.match(/.{2}/g).map((b) => parseInt(b, 16)));
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: saltBytes, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  return bytesToHex(new Uint8Array(bits));
+}
+
+async function verifyPassword(password, saltHex, hashHex) {
+  const computed = await hashPassword(password, saltHex);
+  return computed === hashHex;
+}
+
+async function ensureAdminSeeded(env) {
+  const existing = await env.USERS.get('user:admin');
+  if (existing) return;
+  const bootstrapPassword = env.ADMIN_BOOTSTRAP_PASSWORD || '2511';
+  const salt = randomHex(16);
+  const hash = await hashPassword(bootstrapPassword, salt);
+  await env.USERS.put('user:admin', JSON.stringify({
+    username: 'admin',
+    displayName: 'Justin',
+    isAdmin: true,
+    salt,
+    hash
+  }));
+}
+
+async function handleLogin(request, env) {
+  const { username, password } = await request.json();
+  if (!username || !password) return jsonResponse({ error: 'Identifiants manquants' }, env, 400);
+
+  await ensureAdminSeeded(env);
+
+  const userRaw = await env.USERS.get(`user:${username.toLowerCase()}`);
+  if (!userRaw) return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
+
+  const user = JSON.parse(userRaw);
+  const valid = await verifyPassword(password, user.salt, user.hash);
+  if (!valid) return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
+
+  const token = randomHex(32);
+  await env.SESSIONS.put(`session:${token}`, JSON.stringify({
+    username: user.username,
+    displayName: user.displayName,
+    isAdmin: user.isAdmin
+  }), { expirationTtl: 60 * 60 * 24 * 30 });
+
+  return jsonResponse({ token, username: user.username, displayName: user.displayName, isAdmin: user.isAdmin }, env);
+}
+
+async function getSession(request, env) {
+  const auth = request.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return null;
+  const raw = await env.SESSIONS.get(`session:${token}`);
+  if (!raw) return null;
+  return { token, ...JSON.parse(raw) };
+}
+
+async function handleMe(request, env) {
+  const session = await getSession(request, env);
+  if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+  return jsonResponse({ username: session.username, displayName: session.displayName, isAdmin: session.isAdmin }, env);
+}
+
+async function handleLogout(request, env) {
+  const session = await getSession(request, env);
+  if (session) await env.SESSIONS.delete(`session:${session.token}`);
+  return jsonResponse({ ok: true }, env);
+}
+
+async function handleListUsers(request, env) {
+  const session = await getSession(request, env);
+  if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
+
+  const list = await env.USERS.list({ prefix: 'user:' });
+  const users = await Promise.all(
+    list.keys.map(async (k) => {
+      const raw = await env.USERS.get(k.name);
+      const u = JSON.parse(raw);
+      return { username: u.username, displayName: u.displayName, isAdmin: u.isAdmin };
+    })
+  );
+  return jsonResponse({ users }, env);
+}
+
+async function handleCreateUser(request, env) {
+  const session = await getSession(request, env);
+  if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
+
+  const { username, password, displayName, isAdmin } = await request.json();
+  if (!username || !password) return jsonResponse({ error: 'Identifiants manquants' }, env, 400);
+
+  const key = `user:${username.toLowerCase()}`;
+  const existing = await env.USERS.get(key);
+  if (existing) return jsonResponse({ error: 'Ce nom d\'utilisateur existe déjà' }, env, 409);
+
+  const salt = randomHex(16);
+  const hash = await hashPassword(password, salt);
+  await env.USERS.put(key, JSON.stringify({
+    username: username.toLowerCase(),
+    displayName: displayName || username,
+    isAdmin: !!isAdmin,
+    salt,
+    hash
+  }));
+  return jsonResponse({ ok: true }, env);
+}
+
+async function handleDeleteUser(request, env, username) {
+  const session = await getSession(request, env);
+  if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
+  if (username.toLowerCase() === 'admin') return jsonResponse({ error: 'Impossible de supprimer le compte admin' }, env, 400);
+
+  await env.USERS.delete(`user:${username.toLowerCase()}`);
+  return jsonResponse({ ok: true }, env);
 }
 
 async function handleClaude(request, env) {
@@ -205,6 +345,33 @@ export default {
     }
 
     try {
+      /* Authentification — /api/auth/login est public, tout le reste
+         nécessite une session valide (protège aussi contre l'appel
+         direct du Worker en dehors du site). */
+      if (url.pathname === '/api/auth/login' && request.method === 'POST') {
+        return await handleLogin(request, env);
+      }
+      if (url.pathname === '/api/auth/me' && request.method === 'GET') {
+        return await handleMe(request, env);
+      }
+      if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+        return await handleLogout(request, env);
+      }
+      if (url.pathname === '/api/auth/users' && request.method === 'GET') {
+        return await handleListUsers(request, env);
+      }
+      if (url.pathname === '/api/auth/users' && request.method === 'POST') {
+        return await handleCreateUser(request, env);
+      }
+      if (url.pathname.startsWith('/api/auth/users/') && request.method === 'DELETE') {
+        return await handleDeleteUser(request, env, decodeURIComponent(url.pathname.slice('/api/auth/users/'.length)));
+      }
+
+      if (url.pathname.startsWith('/api/') && url.pathname !== '/api/auth/login') {
+        const session = await getSession(request, env);
+        if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+      }
+
       if (url.pathname === '/api/claude' && request.method === 'POST') {
         return await handleClaude(request, env);
       }

@@ -39,7 +39,7 @@ function renderNewsBlock(article) {
         <span class="sector-badge">🌐 ${article.source?.name || 'Actualité'}</span>
         <span>${timeAgo(article.publishedAt)}</span>
       </div>
-      <a href="${article.url}" target="_blank" rel="noopener" style="text-decoration: none;">
+      <a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}" style="text-decoration: none;">
         <h3 class="news-title">${article.title || 'Sans titre'}</h3>
       </a>
       <p class="news-summary">${article.description || ''}</p>
@@ -103,9 +103,28 @@ async function loadSectors() {
 }
 
 const EARNINGS_COMPANIES = [
+  // Tech
   { name: 'Apple', symbol: 'AAPL', slug: 'apple' },
   { name: 'Nvidia', symbol: 'NVDA', slug: 'nvidia' },
+  { name: 'Microsoft', symbol: 'MSFT' },
+  { name: 'Alphabet (Google)', symbol: 'GOOGL' },
+  { name: 'Amazon', symbol: 'AMZN' },
+  { name: 'Meta', symbol: 'META' },
+  { name: 'Tesla', symbol: 'TSLA' },
+  { name: 'Intel', symbol: 'INTC' },
+  { name: 'AMD', symbol: 'AMD' },
+  // Finance
   { name: 'JPMorgan Chase', symbol: 'JPM', slug: 'jpmorgan-chase' },
+  { name: 'Goldman Sachs', symbol: 'GS' },
+  { name: 'BlackRock', symbol: 'BLK' },
+  { name: 'Visa', symbol: 'V' },
+  { name: 'Mastercard', symbol: 'MA' },
+  // Santé
+  { name: 'UnitedHealth', symbol: 'UNH' },
+  { name: 'Pfizer', symbol: 'PFE' },
+  { name: 'Johnson & Johnson', symbol: 'JNJ' },
+  { name: 'Moderna', symbol: 'MRNA' },
+  // Industrie & énergie
   { name: 'LVMH', symbol: 'MC.PA', slug: 'lvmh' },
   { name: 'ExxonMobil', symbol: 'XOM', slug: 'exxonmobil' },
   { name: 'Saudi Aramco', symbol: '2222.SR', slug: 'saudi-aramco' }
@@ -147,10 +166,12 @@ async function loadEarnings() {
     upcoming.sort((a, b) => a.entry.date.localeCompare(b.entry.date));
     latest.sort((a, b) => b.entry.date.localeCompare(a.entry.date));
 
+    const companyHref = (company) => company.slug ? `analyse.html#company-${company.slug}` : 'analyse.html';
+
     upcomingEl.innerHTML = upcoming.length === 0
       ? '<p style="color: var(--text3); font-size: 12px;">Aucune date connue pour le moment.</p>'
-      : upcoming.slice(0, 6).map(({ company, entry }) => `
-        <a href="analyse.html#company-${company.slug}" class="card earnings-item">
+      : upcoming.slice(0, 8).map(({ company, entry }) => `
+        <a href="${companyHref(company)}" class="card earnings-item">
           <div class="earnings-item-left">
             <span class="earnings-company">${company.name}</span>
             <span class="earnings-date">${formatEarningsDate(entry.date)} · T${entry.quarter} ${entry.year}</span>
@@ -160,11 +181,11 @@ async function loadEarnings() {
 
     latestEl.innerHTML = latest.length === 0
       ? '<p style="color: var(--text3); font-size: 12px;">Aucun résultat récent disponible.</p>'
-      : latest.slice(0, 6).map(({ company, entry }) => {
+      : latest.slice(0, 8).map(({ company, entry }) => {
         const status = beatOrMiss(entry.epsActual, entry.epsEstimate);
         const statusLabel = status === 'beat' ? '↑ Au-dessus des attentes' : status === 'miss' ? '↓ En dessous des attentes' : '';
         return `
-          <a href="analyse.html#company-${company.slug}" class="card earnings-item">
+          <a href="${companyHref(company)}" class="card earnings-item">
             <div class="earnings-item-left">
               <span class="earnings-company">${company.name}</span>
               <span class="earnings-date">${formatEarningsDate(entry.date)} · T${entry.quarter} ${entry.year}</span>
@@ -182,8 +203,9 @@ async function loadEarnings() {
 }
 
 function refreshHome() {
-  loadNewsBlock('priority-list', 'actualité importante France monde', { count: 3, rssFeed: 'lemonde' });
+  loadNewsBlock('priority-list', 'marchés financiers OR investissement OR bourse OR matières premières OR métaux OR taux d\'intérêt OR banque centrale', { count: 6, rssFeed: 'lemonde' });
   loadNewsBlock('highlight-list', 'découverte OR avancée scientifique OR record positif', { count: 3 });
+  loadNewsBlock('world-list', 'actualité internationale', { count: 5 });
   loadSectors();
   loadEarnings();
 }

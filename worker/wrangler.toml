@@ -5,6 +5,17 @@ compatibility_date = "2025-01-01"
 [vars]
 ALLOWED_ORIGIN = "https://justinthore32-sudo.github.io"
 
+[[kv_namespaces]]
+binding = "USERS"
+id = "3be528f483c04c59a2188fb3210fedf6"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "842141255fe745379b7b336f52bee300"
+
 # Secrets à définir avec `wrangler secret put NOM` (jamais dans ce fichier) :
 # - ANTHROPIC_API_KEY
 # - NEWSAPI_KEY
+# - OPENWEATHER_KEY
+# - FINNHUB_KEY
+# - SESSION_SECRET (clé aléatoire pour signer les tokens de session)

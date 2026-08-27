@@ -45,7 +45,7 @@ function renderNewsResult(article) {
   return `
     <article class="card result-item">
       <span class="result-type">News</span>
-      <h3 class="result-title"><a href="${article.url}" target="_blank" rel="noopener">${article.title || 'Sans titre'}</a></h3>
+      <h3 class="result-title"><a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">${article.title || 'Sans titre'}</a></h3>
       <p class="result-excerpt">${article.description || ''}</p>
     </article>`;
 }

@@ -138,6 +138,28 @@
   text-align: center;
 }
 
+/* ---------- MENU UTILISATEUR ---------- */
+.user-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.user-menu {
+  left: auto;
+  right: 0;
+  min-width: 190px;
+  top: calc(100% + 8px);
+}
+
+.user-menu-logout-btn {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
 .theme-switch {
   width: 36px;
   height: 36px;
@@ -178,11 +200,16 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  font-size: 20px;
   color: var(--text3);
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   transition: color 0.2s;
+}
+
+.nav-icon {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
 }
 
 .nav-item span {

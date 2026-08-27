@@ -149,6 +149,121 @@
   overflow: hidden;
 }
 
+/* ============ CONNEXION ============ */
+
+body.login-page {
+  background: var(--primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.login-map {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.login-map svg circle {
+  fill: rgba(148, 163, 184, 0.35);
+}
+
+.login-map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(26, 26, 46, 0.2) 0%, rgba(26, 26, 46, 0.85) 100%);
+}
+
+.login-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.login-logo {
+  font-family: var(--font-serif);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 30px;
+  color: var(--primary);
+}
+
+.login-tagline {
+  font-size: 13px;
+  color: var(--text3);
+  margin-top: 4px;
+  margin-bottom: 28px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-field span {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.login-field input {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.login-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.login-error {
+  font-size: 12px;
+  color: var(--red);
+  text-align: center;
+}
+
+.login-submit {
+  width: 100%;
+  justify-content: center;
+  padding: 12px;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
 /* ============ RÉSULTATS ENTREPRISES ============ */
 
 .earnings-columns {

@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script>
+if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Analyse — Ju Board</title>
@@ -33,6 +36,16 @@
     <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
       <span id="theme-icon">🌙</span>
     </button>
+    <div class="user-menu-wrap">
+      <button class="theme-switch" id="user-menu-btn" aria-label="Menu utilisateur"><span id="user-initial">?</span></button>
+      <div class="search-results user-menu" id="user-menu">
+        <div class="search-group">
+          <div class="search-group-title" id="user-menu-name">—</div>
+          <a href="admin.html" class="search-result hidden" id="user-menu-admin">⚙️ Gestion des comptes</a>
+          <button class="search-result user-menu-logout-btn" id="user-menu-logout">↪ Se déconnecter</button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -328,17 +341,18 @@
 </main>
 
 <nav class="bottom-nav">
-  <a href="index.html" class="nav-item">🏠 <span>Accueil</span></a>
-  <a href="news.html" class="nav-item">📰 <span>News</span></a>
-  <a href="analyse.html" class="nav-item active">📊 <span>Analyse</span></a>
-  <a href="recherche.html" class="nav-item">🔍 <span>Recherche</span></a>
-  <a href="assistant.html" class="nav-item">🤖 <span>Assistant</span></a>
+  <a href="index.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg> <span>Accueil</span></a>
+  <a href="news.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V4z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><path d="M8 8h5M8 12h5M8 16h3"/></svg> <span>News</span></a>
+  <a href="analyse.html" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg> <span>Analyse</span></a>
+  <a href="recherche.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> <span>Recherche</span></a>
+  <a href="assistant.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="12" rx="3"/><path d="M9 21l3-4 3 4"/><path d="M9 10h.01M15 10h.01"/></svg> <span>Assistant</span></a>
 </nav>
 
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="js/api.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/search.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/analyse.js"></script>

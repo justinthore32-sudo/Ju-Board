@@ -74,7 +74,7 @@ function renderArticle(article, domainKey) {
       </div>
       <h3 class="news-title">${article.title || 'Sans titre'}</h3>
       <p class="news-summary">${summary}</p>
-      <a class="btn-expand" href="${article.url}" target="_blank" rel="noopener">Lire l'article original ↗</a>
+      <a class="btn-expand" href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">Lire plus →</a>
     </article>`;
 }
 

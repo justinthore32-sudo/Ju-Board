@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>
+if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fiche news — Ju Board</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+<meta name="theme-color" content="#1A1A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ju Board">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+<header class="header">
+  <a href="index.html" class="logo">Ju Board</a>
+  <div class="header-actions">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Rechercher…" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
+      <span id="theme-icon">🌙</span>
+    </button>
+    <div class="user-menu-wrap">
+      <button class="theme-switch" id="user-menu-btn" aria-label="Menu utilisateur"><span id="user-initial">?</span></button>
+      <div class="search-results user-menu" id="user-menu">
+        <div class="search-group">
+          <div class="search-group-title" id="user-menu-name">—</div>
+          <a href="admin.html" class="search-result hidden" id="user-menu-admin">⚙️ Gestion des comptes</a>
+          <button class="search-result user-menu-logout-btn" id="user-menu-logout">↪ Se déconnecter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <a href="javascript:history.back()" style="display:inline-block; margin-top:20px; font-size:13px; color:var(--accent);">← Retour</a>
+
+  <div class="news-meta" style="margin-top:16px;">
+    <span class="sector-badge" id="article-source">Source</span>
+    <span class="news-time" id="article-time">—</span>
+  </div>
+
+  <h1 style="font-family: var(--font-serif); font-size: 26px; margin-top: 10px; color: var(--primary);" id="article-title">Titre de la news</h1>
+
+  <p class="news-summary" style="margin-top: 14px; font-size: 15px;" id="article-summary">Résumé…</p>
+
+  <section class="section">
+    <div class="deep-block-title">Analyse d'impact</div>
+    <div class="impact-detail">
+      <p style="font-size: 13px; color: var(--text3);">🤖 L'analyse d'impact (direction, ampleur, scénarios, secteurs concernés) sera générée automatiquement ici une fois l'API Anthropic branchée sur Ju Board. Pour l'instant, cette fiche affiche uniquement le contenu brut de la news.</p>
+    </div>
+  </section>
+
+  <section class="section" style="margin-bottom: 32px;">
+    <a id="article-source-link" href="#" target="_blank" rel="noopener" class="btn" style="display:inline-flex;">Voir l'article source ↗</a>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/search.js"></script>
+<script src="js/utils.js"></script>
+<script>
+  function initArticleView() {
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('article-title').textContent = params.get('title') || 'Sans titre';
+    document.getElementById('article-summary').textContent = params.get('description') || 'Pas de résumé disponible.';
+    document.getElementById('article-source').textContent = params.get('source') || 'Actualité';
+    document.getElementById('article-time').textContent = params.get('time') || '';
+    const url = params.get('url') || '#';
+    document.getElementById('article-source-link').href = url;
+  }
+  document.addEventListener('DOMContentLoaded', initArticleView);
+</script>
+</body>
+</html>
