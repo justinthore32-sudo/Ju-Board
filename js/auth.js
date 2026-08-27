@@ -69,8 +69,39 @@ function applyPersonalizedGreeting() {
   if (user) nameEl.textContent = `Bonjour ${user.displayName || user.username}`;
 }
 
+const PAGE_PERMISSIONS = {
+  'news.html': 'news',
+  'analyse.html': 'analyse',
+  'recherche.html': 'recherche',
+  'assistant.html': 'assistant'
+};
+
+function enforcePagePermission() {
+  const user = getCurrentUser();
+  if (!user || user.isAdmin) return;
+  const page = window.location.pathname.split('/').pop();
+  const requiredPermission = PAGE_PERMISSIONS[page];
+  if (!requiredPermission) return;
+  const allowed = user.permissions ? user.permissions[requiredPermission] !== false : true;
+  if (!allowed) {
+    window.location.href = 'index.html';
+  }
+}
+
+function hideRestrictedNavItems() {
+  const user = getCurrentUser();
+  if (!user || user.isAdmin || !user.permissions) return;
+  Object.entries(PAGE_PERMISSIONS).forEach(([page, permission]) => {
+    if (user.permissions[permission] === false) {
+      document.querySelector(`.bottom-nav a[href="${page}"]`)?.remove();
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initLoginForm();
   initUserMenu();
   applyPersonalizedGreeting();
+  enforcePagePermission();
+  hideRestrictedNavItems();
 });

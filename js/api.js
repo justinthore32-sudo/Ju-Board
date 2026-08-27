@@ -94,6 +94,17 @@ async function createUser(username, password, displayName, isAdmin) {
   return data;
 }
 
+async function updateUserPermissions(username, permissions) {
+  const resp = await apiFetch(`/api/auth/users/${encodeURIComponent(username)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ permissions })
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || 'Erreur de mise à jour');
+  return data;
+}
+
 async function deleteUser(username) {
   const resp = await apiFetch(`/api/auth/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
   const data = await resp.json();

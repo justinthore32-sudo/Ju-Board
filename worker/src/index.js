@@ -11,7 +11,7 @@ const DEFAULT_MODEL = 'claude-sonnet-4-6';
 function corsHeaders(env) {
   return {
     'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization'
   };
 }
@@ -50,6 +50,8 @@ async function verifyPassword(password, saltHex, hashHex) {
   return computed === hashHex;
 }
 
+const DEFAULT_PERMISSIONS = { news: true, analyse: true, recherche: true, assistant: true };
+
 async function ensureAdminSeeded(env) {
   const existing = await env.USERS.get('user:admin');
   if (existing) return;
@@ -60,8 +62,12 @@ async function ensureAdminSeeded(env) {
     username: 'admin',
     displayName: 'Justin',
     isAdmin: true,
+    permissions: { ...DEFAULT_PERMISSIONS },
     salt,
-    hash
+    hash,
+    createdAt: Date.now(),
+    lastLoginAt: null,
+    lastSeenAt: null
   }));
 }
 
@@ -78,14 +84,23 @@ async function handleLogin(request, env) {
   const valid = await verifyPassword(password, user.salt, user.hash);
   if (!valid) return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
 
+  const now = Date.now();
   const token = randomHex(32);
+  const permissions = user.permissions || DEFAULT_PERMISSIONS;
+
   await env.SESSIONS.put(`session:${token}`, JSON.stringify({
     username: user.username,
     displayName: user.displayName,
-    isAdmin: user.isAdmin
+    isAdmin: user.isAdmin,
+    permissions,
+    loginAt: now
   }), { expirationTtl: 60 * 60 * 24 * 30 });
 
-  return jsonResponse({ token, username: user.username, displayName: user.displayName, isAdmin: user.isAdmin }, env);
+  user.lastLoginAt = now;
+  user.lastSeenAt = now;
+  await env.USERS.put(`user:${user.username}`, JSON.stringify(user));
+
+  return jsonResponse({ token, username: user.username, displayName: user.displayName, isAdmin: user.isAdmin, permissions }, env);
 }
 
 async function getSession(request, env) {
@@ -94,19 +109,48 @@ async function getSession(request, env) {
   if (!token) return null;
   const raw = await env.SESSIONS.get(`session:${token}`);
   if (!raw) return null;
-  return { token, ...JSON.parse(raw) };
+  const session = { token, ...JSON.parse(raw) };
+  if (!session.permissions) session.permissions = DEFAULT_PERMISSIONS;
+  return session;
+}
+
+/* Met à jour "dernière activité" sur la fiche utilisateur (pour le panneau
+   admin) — limité à 1 écriture toutes les 2 min pour ménager les quotas KV. */
+async function touchUserActivity(env, username) {
+  const key = `user:${username}`;
+  const raw = await env.USERS.get(key);
+  if (!raw) return;
+  const user = JSON.parse(raw);
+  const now = Date.now();
+  if (user.lastSeenAt && now - user.lastSeenAt < 2 * 60 * 1000) return;
+  user.lastSeenAt = now;
+  await env.USERS.put(key, JSON.stringify(user));
 }
 
 async function handleMe(request, env) {
   const session = await getSession(request, env);
   if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
-  return jsonResponse({ username: session.username, displayName: session.displayName, isAdmin: session.isAdmin }, env);
+  return jsonResponse({
+    username: session.username,
+    displayName: session.displayName,
+    isAdmin: session.isAdmin,
+    permissions: session.permissions
+  }, env);
 }
 
 async function handleLogout(request, env) {
   const session = await getSession(request, env);
   if (session) await env.SESSIONS.delete(`session:${session.token}`);
   return jsonResponse({ ok: true }, env);
+}
+
+function formatDuration(ms) {
+  if (!ms || ms < 0) return null;
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return `${hours}h${rem ? ` ${rem}min` : ''}`;
 }
 
 async function handleListUsers(request, env) {
@@ -118,7 +162,17 @@ async function handleListUsers(request, env) {
     list.keys.map(async (k) => {
       const raw = await env.USERS.get(k.name);
       const u = JSON.parse(raw);
-      return { username: u.username, displayName: u.displayName, isAdmin: u.isAdmin };
+      const sessionDurationMs = u.lastSeenAt && u.lastLoginAt ? u.lastSeenAt - u.lastLoginAt : null;
+      return {
+        username: u.username,
+        displayName: u.displayName,
+        isAdmin: u.isAdmin,
+        permissions: u.permissions || DEFAULT_PERMISSIONS,
+        createdAt: u.createdAt || null,
+        lastLoginAt: u.lastLoginAt || null,
+        lastSeenAt: u.lastSeenAt || null,
+        lastSessionDuration: formatDuration(sessionDurationMs)
+      };
     })
   );
   return jsonResponse({ users }, env);
@@ -128,7 +182,7 @@ async function handleCreateUser(request, env) {
   const session = await getSession(request, env);
   if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
 
-  const { username, password, displayName, isAdmin } = await request.json();
+  const { username, password, displayName, isAdmin, permissions } = await request.json();
   if (!username || !password) return jsonResponse({ error: 'Identifiants manquants' }, env, 400);
 
   const key = `user:${username.toLowerCase()}`;
@@ -141,9 +195,36 @@ async function handleCreateUser(request, env) {
     username: username.toLowerCase(),
     displayName: displayName || username,
     isAdmin: !!isAdmin,
+    permissions: { ...DEFAULT_PERMISSIONS, ...(permissions || {}) },
     salt,
-    hash
+    hash,
+    createdAt: Date.now(),
+    lastLoginAt: null,
+    lastSeenAt: null
   }));
+  return jsonResponse({ ok: true }, env);
+}
+
+async function handleUpdateUser(request, env, username) {
+  const session = await getSession(request, env);
+  if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
+
+  const key = `user:${username.toLowerCase()}`;
+  const raw = await env.USERS.get(key);
+  if (!raw) return jsonResponse({ error: 'Compte introuvable' }, env, 404);
+  const user = JSON.parse(raw);
+
+  const { displayName, isAdmin, permissions, password } = await request.json();
+  if (displayName !== undefined) user.displayName = displayName;
+  if (isAdmin !== undefined && username.toLowerCase() !== 'admin') user.isAdmin = !!isAdmin;
+  if (permissions !== undefined) user.permissions = { ...DEFAULT_PERMISSIONS, ...permissions };
+  if (password) {
+    const salt = randomHex(16);
+    user.salt = salt;
+    user.hash = await hashPassword(password, salt);
+  }
+
+  await env.USERS.put(key, JSON.stringify(user));
   return jsonResponse({ ok: true }, env);
 }
 
@@ -337,7 +418,7 @@ async function handleEarnings(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -366,10 +447,14 @@ export default {
       if (url.pathname.startsWith('/api/auth/users/') && request.method === 'DELETE') {
         return await handleDeleteUser(request, env, decodeURIComponent(url.pathname.slice('/api/auth/users/'.length)));
       }
+      if (url.pathname.startsWith('/api/auth/users/') && request.method === 'PATCH') {
+        return await handleUpdateUser(request, env, decodeURIComponent(url.pathname.slice('/api/auth/users/'.length)));
+      }
 
       if (url.pathname.startsWith('/api/') && url.pathname !== '/api/auth/login') {
         const session = await getSession(request, env);
         if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+        ctx.waitUntil(touchUserActivity(env, session.username));
       }
 
       if (url.pathname === '/api/claude' && request.method === 'POST') {
