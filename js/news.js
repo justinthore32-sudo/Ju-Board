@@ -18,7 +18,7 @@ const SUBDOMAINS = {
 };
 
 const DOMAIN_QUERIES = {
-  all: 'actualité internationale',
+  all: 'international OR politique OR économie OR monde',
   economie: 'économie OR marchés financiers OR banque centrale',
   geopolitique: 'géopolitique OR diplomatie OR conflit international',
   tech: 'intelligence artificielle OR technologie',

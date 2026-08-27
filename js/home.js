@@ -205,7 +205,7 @@ async function loadEarnings() {
 function refreshHome() {
   loadNewsBlock('priority-list', 'marchés financiers OR investissement OR bourse OR matières premières OR métaux OR taux d\'intérêt OR banque centrale', { count: 6, rssFeed: 'lemonde' });
   loadNewsBlock('highlight-list', 'découverte OR avancée scientifique OR record positif', { count: 3 });
-  loadNewsBlock('world-list', 'actualité internationale', { count: 5 });
+  loadNewsBlock('world-list', 'international OR politique OR économie OR monde', { count: 5 });
   loadSectors();
   loadEarnings();
 }
