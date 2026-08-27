@@ -38,6 +38,22 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
       <input type="text" id="search-input" placeholder="Rechercher…" autocomplete="off">
       <div class="search-results" id="search-results"></div>
     </div>
+    <div class="calendar-widget-wrap">
+      <button class="theme-switch" id="calendar-btn" aria-label="Calendrier des résultats">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+        <span class="calendar-badge hidden" id="calendar-badge">?</span>
+      </button>
+      <div class="search-results calendar-panel" id="calendar-panel">
+        <div class="search-group">
+          <div class="search-group-title">📅 À venir</div>
+          <div id="calendar-upcoming"><div class="search-loading">Chargement…</div></div>
+        </div>
+        <div class="search-group">
+          <div class="search-group-title">📊 Dernier résultat</div>
+          <div id="calendar-latest"></div>
+        </div>
+      </div>
+    </div>
     <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
       <span id="theme-icon">🌙</span>
     </button>
@@ -156,6 +172,7 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/calendar-widget.js"></script>
 <script src="js/search.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/home.js"></script>

@@ -138,6 +138,44 @@
   text-align: center;
 }
 
+/* ---------- CALENDRIER (widget header) ---------- */
+.calendar-widget-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.calendar-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--bg-main);
+  color: white;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.calendar-panel {
+  left: auto;
+  right: 0;
+  min-width: 260px;
+  top: calc(100% + 8px);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.calendar-panel .earnings-item {
+  padding: 10px 14px;
+}
+
 /* ---------- MENU UTILISATEUR ---------- */
 .user-menu-wrap {
   position: relative;

@@ -33,16 +33,18 @@ function timeAgo(dateString) {
 }
 
 function renderNewsBlock(article) {
+  const link = buildArticleUrl(article, timeAgo(article.publishedAt));
   return `
     <div class="priority-news">
       <div class="news-meta">
         <span class="sector-badge">🌐 ${article.source?.name || 'Actualité'}</span>
         <span>${timeAgo(article.publishedAt)}</span>
       </div>
-      <a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}" style="text-decoration: none;">
+      <a href="${link}" style="text-decoration: none;">
         <h3 class="news-title">${article.title || 'Sans titre'}</h3>
       </a>
       <p class="news-summary">${article.description || ''}</p>
+      <a class="btn-expand" href="${link}">Lire plus →</a>
     </div>`;
 }
 
