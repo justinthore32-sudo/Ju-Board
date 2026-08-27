@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: var(--header-height);
+  height: calc(var(--header-height) + env(safe-area-inset-top));
   padding: 0 16px;
   padding-top: env(safe-area-inset-top);
   background: rgba(240, 242, 245, 0.75);
