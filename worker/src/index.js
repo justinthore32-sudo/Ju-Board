@@ -71,18 +71,50 @@ async function ensureAdminSeeded(env) {
   }));
 }
 
+const LOGIN_MAX_ATTEMPTS = 8;
+const LOGIN_LOCKOUT_SECONDS = 15 * 60;
+
+async function getLoginAttempts(env, ip) {
+  const raw = await env.SESSIONS.get(`loginattempts:${ip}`);
+  return raw ? JSON.parse(raw) : { count: 0 };
+}
+
+async function recordLoginFailure(env, ip) {
+  const attempts = await getLoginAttempts(env, ip);
+  attempts.count += 1;
+  await env.SESSIONS.put(`loginattempts:${ip}`, JSON.stringify(attempts), { expirationTtl: LOGIN_LOCKOUT_SECONDS });
+}
+
+async function clearLoginAttempts(env, ip) {
+  await env.SESSIONS.delete(`loginattempts:${ip}`);
+}
+
 async function handleLogin(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const attempts = await getLoginAttempts(env, ip);
+  if (attempts.count >= LOGIN_MAX_ATTEMPTS) {
+    return jsonResponse({ error: 'Trop de tentatives échouées. Réessaie dans 15 minutes.' }, env, 429);
+  }
+
   const { username, password } = await request.json();
   if (!username || !password) return jsonResponse({ error: 'Identifiants manquants' }, env, 400);
 
   await ensureAdminSeeded(env);
 
   const userRaw = await env.USERS.get(`user:${username.toLowerCase()}`);
-  if (!userRaw) return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
+  if (!userRaw) {
+    await recordLoginFailure(env, ip);
+    return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
+  }
 
   const user = JSON.parse(userRaw);
   const valid = await verifyPassword(password, user.salt, user.hash);
-  if (!valid) return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
+  if (!valid) {
+    await recordLoginFailure(env, ip);
+    return jsonResponse({ error: 'Identifiants invalides' }, env, 401);
+  }
+
+  await clearLoginAttempts(env, ip);
 
   const now = Date.now();
   const token = randomHex(32);

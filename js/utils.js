@@ -82,6 +82,34 @@ async function setWeather() {
   }
 }
 
+/* ---------- TAG D'IMPACT MARCHÉ (mots-clés, sans IA) ----------
+   Premier niveau de tri avant qu'une vraie analyse Anthropic soit
+   branchée : un dictionnaire pondéré suffit à repérer les articles qui
+   ont statistiquement plus de chances de bouger les marchés. */
+const IMPACT_KEYWORDS_FORT = [
+  'fed', 'bce', 'banque centrale', 'taux directeur', 'opep', 'inflation',
+  'récession', 'fusion', 'acquisition', 'faillite', 'défaut de paiement',
+  'krach', 'crash boursier', 'sanctions', 'nucléaire', 'guerre'
+];
+const IMPACT_KEYWORDS_MOYEN = [
+  'résultats', 'bénéfice', 'chiffre d\'affaires', 'pib', 'chômage',
+  'élection', 'tarifs douaniers', 'accord commercial', 'grève', 'opa'
+];
+
+function getImpactLevel(article) {
+  const text = `${article?.title || ''} ${article?.description || ''}`.toLowerCase();
+  if (IMPACT_KEYWORDS_FORT.some((k) => text.includes(k))) return 'fort';
+  if (IMPACT_KEYWORDS_MOYEN.some((k) => text.includes(k))) return 'moyen';
+  return null;
+}
+
+function impactBadgeHtml(article) {
+  const level = getImpactLevel(article);
+  if (level === 'fort') return '<span class="impact-badge impact-fort">🔴 Impact fort</span>';
+  if (level === 'moyen') return '<span class="impact-badge impact-moyen">🟠 Impact modéré</span>';
+  return '';
+}
+
 /* ---------- TOAST ---------- */
 function showToast(message, duration = 2500) {
   const toast = document.getElementById('toast');

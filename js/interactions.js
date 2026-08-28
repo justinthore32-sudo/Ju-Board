@@ -22,10 +22,20 @@ function markAsRead(id) {
   localStorage.setItem(READ_KEY, JSON.stringify([...set]));
 }
 
+/* L'URL interne (article.html?...) embarque un label "Il y a 3h" qui change
+   avec le temps : l'utiliser comme identifiant ferait "oublier" un article
+   déjà lu. On extrait plutôt l'URL source (stable) du paramètre `url`. */
 function cardId(card) {
   const link = card.querySelector('a[href]');
+  const href = link?.getAttribute('href') || '';
+  if (href.includes('article.html?')) {
+    try {
+      const sourceUrl = new URLSearchParams(href.split('?')[1] || '').get('url');
+      if (sourceUrl) return sourceUrl;
+    } catch (err) { /* on retombe sur le href complet ci-dessous */ }
+  }
   const title = card.querySelector('.news-title, .result-title')?.textContent?.trim();
-  return link?.getAttribute('href') || title || '';
+  return href || title || '';
 }
 
 function applyReadStates() {
@@ -33,6 +43,38 @@ function applyReadStates() {
   document.querySelectorAll(CARD_SELECTOR).forEach((card) => {
     if (readSet.has(cardId(card))) card.classList.add('card-read');
   });
+}
+
+/* ---------- FAVORIS ---------- */
+const FAV_KEY = 'ju-board-favorites';
+
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '{}'); }
+  catch (err) { return {}; }
+}
+
+function saveFavorites(favs) {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch (err) { /* stockage indisponible */ }
+}
+
+function isFavorite(id) {
+  return !!getFavorites()[id];
+}
+
+function toggleFavorite(card) {
+  const id = cardId(card);
+  if (!id) return false;
+  const favs = getFavorites();
+  if (favs[id]) {
+    delete favs[id];
+    saveFavorites(favs);
+    return false;
+  }
+  const title = card.querySelector('.news-title, .result-title')?.textContent?.trim() || '';
+  const link = card.querySelector('a[href]')?.getAttribute('href') || '';
+  favs[id] = { title, link, savedAt: Date.now() };
+  saveFavorites(favs);
+  return true;
 }
 
 /* ---------- PULL-TO-REFRESH ---------- */
@@ -90,15 +132,23 @@ function showLongPressMenu(card, x, y) {
 
   const title = card.querySelector('.news-title, .result-title')?.textContent?.trim() || '';
   const link = card.querySelector('a[href]')?.getAttribute('href') || '';
+  const favored = isFavorite(cardId(card));
 
   const menu = document.createElement('div');
   menu.className = 'longpress-menu';
   menu.style.left = `${Math.min(x, window.innerWidth - 180)}px`;
   menu.style.top = `${y}px`;
   menu.innerHTML = `
+    <button data-action="favorite">${favored ? '★ Retirer des favoris' : '☆ Sauvegarder'}</button>
     <button data-action="copy">📋 Copier le titre</button>
     <button data-action="share">↗ Partager</button>`;
   document.body.appendChild(menu);
+
+  menu.querySelector('[data-action="favorite"]').addEventListener('click', () => {
+    const added = toggleFavorite(card);
+    if (typeof showToast === 'function') showToast(added ? 'Ajouté aux favoris' : 'Retiré des favoris');
+    closeLongPressMenu();
+  });
 
   menu.querySelector('[data-action="copy"]').addEventListener('click', async () => {
     try {

@@ -339,6 +339,29 @@
   border-radius: 99px;
 }
 
+/* ---------- BADGE IMPACT MARCHÉ ---------- */
+.impact-badge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.impact-badge.impact-fort {
+  background: var(--down-bg);
+  color: var(--red);
+  border: 1px solid var(--down-border);
+}
+
+.impact-badge.impact-moyen {
+  background: var(--neutral-bg);
+  color: var(--gold);
+  border: 1px solid var(--neutral-border);
+}
+
 /* ---------- BOUTONS ---------- */
 .btn {
   display: inline-flex;

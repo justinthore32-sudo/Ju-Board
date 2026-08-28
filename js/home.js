@@ -39,6 +39,7 @@ function renderNewsBlock(article) {
       <div class="news-meta">
         <span class="sector-badge">🌐 ${article.source?.name || 'Actualité'}</span>
         <span>${timeAgo(article.publishedAt)}</span>
+        ${typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : ''}
       </div>
       <a href="${link}" style="text-decoration: none;">
         <h3 class="news-title">${article.title || 'Sans titre'}</h3>

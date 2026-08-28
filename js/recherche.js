@@ -9,7 +9,13 @@ const SECTOR_QUERIES = {
   economie: 'économie OR marchés financiers OR banque centrale',
   geopolitique: 'géopolitique OR diplomatie OR conflit international',
   tech: 'intelligence artificielle OR technologie',
-  sante: 'santé OR médecine OR vaccin'
+  environnement: 'climat OR environnement',
+  politique: 'politique France OR Europe',
+  sante: 'santé OR médecine OR vaccin',
+  spatial: 'espace OR spatial OR NASA',
+  energie: 'énergie OR pétrole OR nucléaire',
+  histoire: 'histoire',
+  societe: 'société'
 };
 
 const PERIOD_DAYS = { '24h': 1, '7j': 7, '30j': 30, '1an': 365 };
@@ -45,6 +51,7 @@ function renderNewsResult(article) {
   return `
     <article class="card result-item">
       <span class="result-type">News</span>
+      ${typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : ''}
       <h3 class="result-title"><a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">${article.title || 'Sans titre'}</a></h3>
       <p class="result-excerpt">${article.description || ''}</p>
     </article>`;
@@ -165,6 +172,34 @@ async function runSearch(query, resetPage = true) {
   renderPagination();
 }
 
+function renderFavorites() {
+  const resultsList = document.getElementById('results-list');
+  const resultsMeta = document.getElementById('results-meta');
+  const aiBox = document.getElementById('ai-answer-box');
+  const pagination = document.getElementById('pagination');
+
+  aiBox.classList.remove('active');
+  pagination.classList.add('hidden');
+  resultsMeta.classList.remove('hidden');
+
+  let favorites = {};
+  try { favorites = JSON.parse(localStorage.getItem('ju-board-favorites') || '{}'); } catch (err) { /* stockage indisponible */ }
+  const entries = Object.entries(favorites).sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0));
+
+  if (entries.length === 0) {
+    resultsMeta.textContent = 'Aucun favori pour le moment.';
+    resultsList.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Fais un appui long sur une news pour la sauvegarder ici.</p>';
+    return;
+  }
+
+  resultsMeta.textContent = `${entries.length} favori${entries.length > 1 ? 's' : ''}`;
+  resultsList.innerHTML = entries.map(([, fav]) => `
+    <article class="card result-item">
+      <span class="result-type">★ Favori</span>
+      <h3 class="result-title"><a href="${fav.link}">${fav.title || 'Sans titre'}</a></h3>
+    </article>`).join('');
+}
+
 function initFilterChips() {
   document.querySelectorAll('.filter-chips').forEach((group) => {
     const groupName = group.dataset.group;
@@ -174,6 +209,10 @@ function initFilterChips() {
         chips.forEach((c) => c.classList.remove('active'));
         chip.classList.add('active');
         activeFilters[groupName] = chip.dataset.value;
+        if (groupName === 'type' && chip.dataset.value === 'favoris') {
+          renderFavorites();
+          return;
+        }
         if (currentQuery) runSearch(currentQuery);
       });
     });

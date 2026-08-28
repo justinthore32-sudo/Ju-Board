@@ -71,6 +71,7 @@ function renderArticle(article, domainKey) {
         <span class="sector-badge">${badge}</span>
         <span class="news-source">${article.source?.name || 'Source inconnue'}</span>
         <span class="news-time">${timeAgo(article.publishedAt)}</span>
+        ${typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : ''}
       </div>
       <h3 class="news-title">${article.title || 'Sans titre'}</h3>
       <p class="news-summary">${summary}</p>
