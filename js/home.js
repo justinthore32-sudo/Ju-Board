@@ -78,24 +78,42 @@ async function loadNewsBlock(containerId, query, { count = 3, rssFeed, domains }
   }
 }
 
+/* Un seul appel NewsAPI groupant tous les secteurs au lieu d'un appel par
+   secteur (10 requêtes -> 1) : le quota gratuit (50/12h) ne survivait pas
+   à 2-3 visites de l'accueil sinon. On matche ensuite chaque secteur par
+   mot-clé dans les résultats déjà récupérés. */
 async function loadSectors() {
   const grid = document.getElementById('sectors-grid');
   if (!grid || typeof fetchNews !== 'function') return;
 
+  const combinedQuery = SECTORS.map((s) => s.query).join(' OR ');
+  let combinedArticles = [];
+  try {
+    const data = await fetchNews(combinedQuery, { pageSize: 50 });
+    combinedArticles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]');
+  } catch (err) {
+    combinedArticles = [];
+  }
+
+  function matchSector(sector) {
+    const keywords = sector.query.split(' OR ').map((k) => k.trim().toLowerCase()).filter(Boolean);
+    return combinedArticles.find((a) => {
+      const text = `${a.title} ${a.description || ''}`.toLowerCase();
+      return keywords.some((k) => text.includes(k));
+    });
+  }
+
   const results = await Promise.all(
     SECTORS.map(async (sector) => {
-      try {
-        if (sector.rss && typeof fetchRss === 'function') {
-          const rssData = await fetchRss(sector.rss).catch(() => null);
+      if (sector.rss && typeof fetchRss === 'function') {
+        try {
+          const rssData = await fetchRss(sector.rss);
           const rssArticle = rssData?.articles?.[0];
           if (rssArticle) return { sector, headline: rssArticle.title };
-        }
-        const data = await fetchNews(sector.query);
-        const article = (data.articles || []).find((a) => a.title && a.title !== '[Removed]');
-        return { sector, headline: article ? article.title : "Pas d'actualité pour le moment" };
-      } catch (err) {
-        return { sector, headline: 'Erreur de chargement' };
+        } catch (err) { /* on retombe sur le matching par mot-clé ci-dessous */ }
       }
+      const match = matchSector(sector);
+      return { sector, headline: match ? match.title : "Pas d'actualité pour le moment" };
     })
   );
 

@@ -346,8 +346,9 @@ async function handleNews(request, env, ctx) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
   const from = url.searchParams.get('from');
   const domains = url.searchParams.get('domains') || TRUSTED_DOMAINS;
+  const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get('pageSize') || '20', 10) || 20));
 
-  let newsUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=fr&sortBy=${sortBy}&pageSize=20&page=${page}&apiKey=${env.NEWSAPI_KEY}`;
+  let newsUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=fr&sortBy=${sortBy}&pageSize=${pageSize}&page=${page}&apiKey=${env.NEWSAPI_KEY}`;
   if (domains) newsUrl += `&domains=${encodeURIComponent(domains)}`;
   if (from) newsUrl += `&from=${encodeURIComponent(from)}`;
 

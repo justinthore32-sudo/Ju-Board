@@ -124,10 +124,11 @@ async function callClaude(messages, { system, maxTokens = 1000 } = {}) {
 }
 
 /* ---------- NEWSAPI (via proxy) ---------- */
-async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from, domains } = {}) {
+async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from, domains, pageSize } = {}) {
   const params = new URLSearchParams({ q: query, sortBy, page });
   if (from) params.set('from', from);
   if (domains) params.set('domains', domains);
+  if (pageSize) params.set('pageSize', pageSize);
   const resp = await apiFetch(`/api/news?${params.toString()}`);
   if (!resp.ok) {
     if (resp.status === 429) throw new Error('Quota NewsAPI atteint, réessaie dans quelques minutes');
