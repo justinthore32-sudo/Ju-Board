@@ -1,7 +1,10 @@
 /* ============================================
    JU BOARD — news.js
-   Page News : filtres, tri réel, pagination et
-   chargement des vraies actualités (NewsAPI)
+   Page News : navigation par secteur (mode par défaut,
+   comme avant) + recherche libre fusionnée depuis
+   l'ancienne page Recherche avancée (mot-clé, entreprise,
+   glossaire, favoris). Une requête tapée bascule
+   automatiquement l'interface en mode recherche.
    ============================================ */
 
 const SUBDOMAINS = {
@@ -38,11 +41,15 @@ const DOMAIN_LABELS = {
 };
 
 const SORT_MAP = { recent: 'publishedAt', important: 'popularity', impact: 'relevancy' };
+const PERIOD_DAYS = { '24h': 1, '7j': 7, '30j': 30, '1an': 365 };
 
 let currentPage = 1;
 let currentSort = 'recent';
 let lastTotalResults = 0;
 let loadedCount = 0;
+let currentQuery = '';
+let favorisActive = false;
+let searchFilters = { periode: '24h', type: 'tous' };
 
 function timeAgo(dateString) {
   const diffMs = Date.now() - new Date(dateString).getTime();
@@ -54,7 +61,16 @@ function timeAgo(dateString) {
   return `Il y a ${days}j`;
 }
 
-function buildQuery() {
+function glossify(text) {
+  return typeof linkifyGlossary === 'function' ? linkifyGlossary(text) : text;
+}
+
+function impactTag(article) {
+  return typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : '';
+}
+
+/* ---------- MODE NAVIGATION (par secteur) ---------- */
+function buildBrowseQuery() {
   const domain = document.getElementById('domain-select').value;
   const subdomain = document.getElementById('subdomain-select').value;
   let query = DOMAIN_QUERIES[domain] || DOMAIN_QUERIES.all;
@@ -71,15 +87,15 @@ function renderArticle(article, domainKey) {
         <span class="sector-badge">${badge}</span>
         <span class="news-source">${article.source?.name || 'Source inconnue'}</span>
         <span class="news-time">${timeAgo(article.publishedAt)}</span>
-        ${typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : ''}
+        ${impactTag(article)}
       </div>
-      <h3 class="news-title">${typeof linkifyGlossary === 'function' ? linkifyGlossary(article.title || 'Sans titre') : (article.title || 'Sans titre')}</h3>
-      <p class="news-summary">${typeof linkifyGlossary === 'function' ? linkifyGlossary(summary) : summary}</p>
+      <h3 class="news-title">${glossify(article.title || 'Sans titre')}</h3>
+      <p class="news-summary">${glossify(summary)}</p>
       <a class="btn-expand" href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">Lire plus →</a>
     </article>`;
 }
 
-async function loadNews(append = false) {
+async function loadBrowse(append = false) {
   const list = document.getElementById('news-list');
   const loadMoreBtn = document.getElementById('load-more');
 
@@ -92,7 +108,7 @@ async function loadNews(append = false) {
       <div class="skeleton" style="height: 180px;"></div>`;
   }
 
-  const { query, domain } = buildQuery();
+  const { query, domain } = buildBrowseQuery();
   const sortBy = SORT_MAP[currentSort] || 'publishedAt';
 
   if (typeof fetchNews !== 'function') {
@@ -121,6 +137,178 @@ async function loadNews(append = false) {
   } catch (err) {
     list.innerHTML = `<p style="color: var(--red); font-size: 13px;">Erreur de chargement : ${err.message}</p>`;
   }
+}
+
+/* ---------- MODE RECHERCHE (mot-clé, entreprise, glossaire) ---------- */
+function computeFromDate() {
+  const days = PERIOD_DAYS[searchFilters.periode] || 1;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function renderSearchNewsResult(article) {
+  return `
+    <article class="card result-item">
+      <span class="result-type">News</span>
+      ${impactTag(article)}
+      <h3 class="result-title"><a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">${glossify(article.title || 'Sans titre')}</a></h3>
+      <p class="result-excerpt">${glossify(article.description || '')}</p>
+    </article>`;
+}
+
+function renderGlossaryResult(entry) {
+  return `
+    <article class="card result-item">
+      <span class="result-type">Définition</span>
+      <h3 class="result-title">${entry.term}</h3>
+      <p class="result-excerpt">${entry.definition}</p>
+    </article>`;
+}
+
+function renderCompanyResult(company) {
+  return `
+    <article class="card result-item">
+      <span class="result-type">Analyse</span>
+      <h3 class="result-title"><a href="analyse.html">${company.name}</a></h3>
+      <p class="result-excerpt">Voir ${company.name} dans ta watchlist (page Analyse).</p>
+    </article>`;
+}
+
+async function runNewsSearch(append = false) {
+  const list = document.getElementById('news-list');
+  const meta = document.getElementById('results-meta');
+  const loadMoreBtn = document.getElementById('load-more');
+  const trimmed = currentQuery.trim();
+  if (!trimmed) return;
+
+  if (!append) {
+    currentPage = 1;
+    loadedCount = 0;
+    meta.classList.remove('hidden');
+    meta.textContent = `Recherche en cours pour « ${trimmed} »…`;
+    list.innerHTML = `
+      <div class="skeleton" style="height: 110px; margin-bottom: 14px;"></div>
+      <div class="skeleton" style="height: 110px;"></div>`;
+  }
+
+  const lowerQuery = trimmed.toLowerCase();
+  const glossaryMatches = !append && (searchFilters.type === 'tous' || searchFilters.type === 'definition') && typeof SEARCH_GLOSSARY !== 'undefined'
+    ? SEARCH_GLOSSARY.filter((g) => g.term.toLowerCase().includes(lowerQuery)) : [];
+  const companyMatches = !append && (searchFilters.type === 'tous' || searchFilters.type === 'analyse') && typeof SEARCH_COMPANIES !== 'undefined'
+    ? SEARCH_COMPANIES.filter((c) => c.name.toLowerCase().includes(lowerQuery)) : [];
+
+  let newsArticles = [];
+  let newsError = null;
+
+  if (searchFilters.type === 'tous' || searchFilters.type === 'news') {
+    try {
+      const data = await fetchNews(trimmed, { sortBy: 'relevancy', page: currentPage, from: computeFromDate() });
+      if (data.status !== 'ok') throw new Error(data.message || 'Erreur');
+      newsArticles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]');
+      lastTotalResults = data.totalResults || 0;
+    } catch (err) {
+      newsError = err.message;
+      lastTotalResults = 0;
+    }
+  } else {
+    lastTotalResults = 0;
+  }
+
+  const totalCount = newsArticles.length + glossaryMatches.length + companyMatches.length;
+
+  if (!append && totalCount === 0) {
+    meta.classList.add('hidden');
+    list.innerHTML = newsError
+      ? `<p style="color: var(--red); font-size: 13px;">Erreur de recherche : ${newsError}</p>`
+      : `<p style="color: var(--text3); font-size: 13px;">Aucun résultat pour « ${trimmed} » avec ces filtres.</p>`;
+    loadMoreBtn.classList.add('hidden');
+    return;
+  }
+
+  if (!append) {
+    meta.textContent = `${totalCount} résultat${totalCount > 1 ? 's' : ''} pour « ${trimmed} »`;
+    list.innerHTML = [
+      ...companyMatches.map(renderCompanyResult),
+      ...glossaryMatches.map(renderGlossaryResult),
+      ...newsArticles.map(renderSearchNewsResult)
+    ].join('');
+  } else {
+    list.innerHTML += newsArticles.map(renderSearchNewsResult).join('');
+  }
+
+  loadedCount += newsArticles.length;
+  loadMoreBtn.classList.toggle('hidden', loadedCount >= lastTotalResults || newsArticles.length === 0);
+}
+
+/* ---------- FAVORIS ---------- */
+function renderFavorisView() {
+  const list = document.getElementById('news-list');
+  const meta = document.getElementById('results-meta');
+  document.getElementById('load-more').classList.add('hidden');
+  meta.classList.remove('hidden');
+
+  let favorites = {};
+  try { favorites = JSON.parse(localStorage.getItem('ju-board-favorites') || '{}'); } catch (err) { /* stockage indisponible */ }
+  const entries = Object.entries(favorites).sort((a, b) => (b[1].savedAt || 0) - (a[1].savedAt || 0));
+
+  if (entries.length === 0) {
+    meta.textContent = 'Aucun favori pour le moment.';
+    list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Fais un appui long sur une news pour la sauvegarder ici.</p>';
+    return;
+  }
+
+  meta.textContent = `${entries.length} favori${entries.length > 1 ? 's' : ''}`;
+  list.innerHTML = entries.map(([, fav]) => `
+    <article class="card result-item">
+      <span class="result-type">★ Favori</span>
+      <h3 class="result-title"><a href="${fav.link}">${fav.title || 'Sans titre'}</a></h3>
+    </article>`).join('');
+}
+
+/* ---------- ORCHESTRATION DES 3 MODES ---------- */
+function updateModeVisibility() {
+  const browseFilters = document.getElementById('browse-filters');
+  const searchFiltersEl = document.getElementById('search-filters');
+  const favBtn = document.getElementById('favoris-toggle');
+  const searching = !favorisActive && currentQuery.trim().length > 0;
+
+  browseFilters.classList.toggle('hidden', favorisActive || searching);
+  searchFiltersEl.classList.toggle('hidden', favorisActive || !searching);
+  favBtn.classList.toggle('active', favorisActive);
+  if (!favorisActive && !searching) document.getElementById('results-meta').classList.add('hidden');
+}
+
+function refreshCurrentMode(append = false) {
+  if (favorisActive) { renderFavorisView(); return; }
+  if (currentQuery.trim()) { runNewsSearch(append); return; }
+  loadBrowse(append);
+}
+
+function initSearchInput() {
+  const input = document.getElementById('news-search-input');
+  if (!input) return;
+  let debounceTimer = null;
+
+  input.addEventListener('input', () => {
+    if (favorisActive) favorisActive = false;
+    currentQuery = input.value;
+    updateModeVisibility();
+    window.clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(() => refreshCurrentMode(false), 400);
+  });
+}
+
+function initFavorisToggle() {
+  const btn = document.getElementById('favoris-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    favorisActive = !favorisActive;
+    if (favorisActive) {
+      document.getElementById('news-search-input').value = '';
+      currentQuery = '';
+    }
+    updateModeVisibility();
+    refreshCurrentMode(false);
+  });
 }
 
 function applySectorFromUrl() {
@@ -153,10 +341,10 @@ function initDomainFilter() {
 
   domainSelect.addEventListener('change', () => {
     populateSubdomains(domainSelect.value);
-    loadNews();
+    loadBrowse();
   });
 
-  subdomainSelect.addEventListener('change', () => loadNews());
+  subdomainSelect.addEventListener('change', () => loadBrowse());
 }
 
 function initSortTabs() {
@@ -166,7 +354,22 @@ function initSortTabs() {
       tabs.forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
       currentSort = tab.dataset.sort;
-      loadNews();
+      loadBrowse();
+    });
+  });
+}
+
+function initSearchFilterChips() {
+  document.querySelectorAll('#search-filters .filter-chips').forEach((group) => {
+    const groupName = group.dataset.group;
+    const chips = group.querySelectorAll('.filter-chip');
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        chips.forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        searchFilters[groupName] = chip.dataset.value;
+        if (currentQuery.trim()) refreshCurrentMode(false);
+      });
     });
   });
 }
@@ -176,12 +379,12 @@ function initLoadMore() {
   if (!btn) return;
   btn.addEventListener('click', () => {
     currentPage += 1;
-    loadNews(true);
+    refreshCurrentMode(true);
   });
 }
 
 function refreshNews() {
-  loadNews();
+  refreshCurrentMode(false);
 }
 
 window.juBoardRefresh = refreshNews;
@@ -189,7 +392,11 @@ window.juBoardRefresh = refreshNews;
 document.addEventListener('DOMContentLoaded', () => {
   initDomainFilter();
   initSortTabs();
+  initSearchFilterChips();
   initLoadMore();
+  initSearchInput();
+  initFavorisToggle();
+  updateModeVisibility();
   const appliedFromUrl = applySectorFromUrl();
-  if (!appliedFromUrl) loadNews();
+  if (!appliedFromUrl) loadBrowse();
 });

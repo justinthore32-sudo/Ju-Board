@@ -50,7 +50,7 @@ async function verifyPassword(password, saltHex, hashHex) {
   return computed === hashHex;
 }
 
-const DEFAULT_PERMISSIONS = { news: true, analyse: true, recherche: true, assistant: true };
+const DEFAULT_PERMISSIONS = { news: true, analyse: true, assistant: true };
 
 async function ensureAdminSeeded(env) {
   const existing = await env.USERS.get('user:admin');

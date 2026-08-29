@@ -5,7 +5,7 @@
    Réservé aux comptes admin.
    ============================================ */
 
-const PERMISSION_LABELS = { news: 'News', analyse: 'Analyse', recherche: 'Recherche', assistant: 'Assistant' };
+const PERMISSION_LABELS = { news: 'News', analyse: 'Analyse', assistant: 'Assistant' };
 
 function formatDate(ts) {
   if (!ts) return '—';

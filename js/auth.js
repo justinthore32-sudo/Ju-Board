@@ -72,7 +72,6 @@ function applyPersonalizedGreeting() {
 const PAGE_PERMISSIONS = {
   'news.html': 'news',
   'analyse.html': 'analyse',
-  'recherche.html': 'recherche',
   'assistant.html': 'assistant'
 };
 

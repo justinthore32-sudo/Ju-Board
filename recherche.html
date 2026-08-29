@@ -1,137 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script>
-if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
-</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Recherche — Ju Board</title>
-
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="assets/icons/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-<meta name="theme-color" content="#1A1A2E">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Ju Board">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="css/main.css?v=20260829d">
-<link rel="stylesheet" href="css/components.css?v=20260829d">
-<link rel="stylesheet" href="css/pages.css?v=20260829d">
+<script>
+/* Recherche avancée a été fusionnée dans News (barre de recherche +
+   filtres qui apparaissent en tapant). Redirection pour les anciens
+   liens/raccourcis. */
+location.replace('news.html');
+</script>
 </head>
-<body>
-
-<header class="header">
-  <a href="index.html" class="logo">Ju Board</a>
-  <div class="header-actions">
-    <div class="search-bar">
-      <input type="text" id="search-input" placeholder="Rechercher…" autocomplete="off">
-      <div class="search-results" id="search-results"></div>
-    </div>
-    <a href="calendrier.html" class="theme-switch" aria-label="Calendrier des résultats" style="position:relative;">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-      <span class="calendar-badge hidden" id="calendar-badge">?</span>
-    </a>
-    <button class="theme-switch" id="theme-switch" aria-label="Changer de thème">
-      <span id="theme-icon">🌙</span>
-    </button>
-    <div class="user-menu-wrap">
-      <button class="theme-switch" id="user-menu-btn" aria-label="Menu utilisateur"><span id="user-initial">?</span></button>
-      <div class="search-results user-menu" id="user-menu">
-        <div class="search-group">
-          <div class="search-group-title" id="user-menu-name">—</div>
-          <a href="admin.html" class="search-result hidden" id="user-menu-admin">⚙️ Gestion des comptes</a>
-          <button class="search-result user-menu-logout-btn" id="user-menu-logout">↪ Se déconnecter</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
-
-<main class="container">
-
-  <div class="search-hero">
-    <h1 class="search-hero-title">Recherche avancée</h1>
-    <p style="font-size: 13px; color: var(--text3); margin: -8px 0 12px;">Pour trouver quelque chose de précis — un mot, une entreprise, un terme du glossaire, ou tes favoris. Pour explorer, utilise News.</p>
-    <div class="search-hero-bar">
-      <input type="text" id="advanced-search-input" placeholder="Rechercher une news, une entreprise, un concept…" autocomplete="off">
-    </div>
-
-    <div class="search-filters">
-      <div class="filter-group">
-        <span class="filter-group-label">Période</span>
-        <div class="filter-chips" data-group="periode">
-          <button class="filter-chip active" data-value="24h">24h</button>
-          <button class="filter-chip" data-value="7j">7j</button>
-          <button class="filter-chip" data-value="30j">30j</button>
-          <button class="filter-chip" data-value="1an">1 an</button>
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-group-label">Secteur</span>
-        <div class="filter-chips" data-group="secteur">
-          <button class="filter-chip active" data-value="tous">Tous</button>
-          <button class="filter-chip" data-value="economie">💰 Économie</button>
-          <button class="filter-chip" data-value="geopolitique">🌍 Géopolitique</button>
-          <button class="filter-chip" data-value="tech">💻 Tech &amp; IA</button>
-          <button class="filter-chip" data-value="environnement">🌱 Environnement</button>
-          <button class="filter-chip" data-value="politique">🏛️ Politique</button>
-          <button class="filter-chip" data-value="sante">💊 Santé</button>
-          <button class="filter-chip" data-value="spatial">🚀 Spatial</button>
-          <button class="filter-chip" data-value="energie">⚡ Énergie</button>
-          <button class="filter-chip" data-value="histoire">📚 Histoire</button>
-          <button class="filter-chip" data-value="societe">🎭 Société</button>
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-group-label">Type</span>
-        <div class="filter-chips" data-group="type">
-          <button class="filter-chip active" data-value="tous">Tous</button>
-          <button class="filter-chip" data-value="news">News</button>
-          <button class="filter-chip" data-value="analyse">Analyse</button>
-          <button class="filter-chip" data-value="definition">Définition</button>
-          <button class="filter-chip" data-value="favoris">★ Favoris</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="ai-answer-box" id="ai-answer-box">
-    <span class="ai-answer-label">🤖 Réponse générée par l'IA</span>
-    <p class="result-excerpt" id="ai-answer-text"></p>
-  </div>
-
-  <p class="results-meta hidden" id="results-meta"></p>
-
-  <section class="section news-list" id="results-list"></section>
-
-  <div class="pagination hidden" id="pagination"></div>
-
-</main>
-
-<nav class="bottom-nav">
-  <a href="index.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg> <span>Accueil</span></a>
-  <a href="news.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V4z"/><path d="M17 8h3v10a2 2 0 0 1-2 2"/><path d="M8 8h5M8 12h5M8 16h3"/></svg> <span>News</span></a>
-  <a href="analyse.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg> <span>Analyse</span></a>
-  <a href="recherche.html" class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> <span>Recherche</span></a>
-  <a href="assistant.html" class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="12" rx="3"/><path d="M9 21l3-4 3 4"/><path d="M9 10h.01M15 10h.01"/></svg> <span>Assistant</span></a>
-</nav>
-
-<div class="toast" id="toast"></div>
-
-<script src="js/api.js?v=20260829d"></script>
-<script src="js/auth.js?v=20260829d"></script>
-<script src="js/calendar-widget.js?v=20260829d"></script>
-<script src="js/search.js?v=20260829d"></script>
-<script src="js/utils.js?v=20260829d"></script>
-<script src="js/recherche.js?v=20260829d"></script>
-<script src="js/interactions.js?v=20260829d"></script>
-</body>
+<body></body>
 </html>

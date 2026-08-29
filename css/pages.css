@@ -867,6 +867,36 @@ body.login-page {
   justify-content: center;
 }
 
+/* ---------- BARRE DE RECHERCHE + FAVORIS (page News fusionnée) ---------- */
+.news-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.news-search-input {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: 99px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
+#favoris-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#favoris-toggle.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
