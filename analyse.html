@@ -20,9 +20,9 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="css/main.css?v=20260829a">
-<link rel="stylesheet" href="css/components.css?v=20260829a">
-<link rel="stylesheet" href="css/pages.css?v=20260829a">
+<link rel="stylesheet" href="css/main.css?v=20260829b">
+<link rel="stylesheet" href="css/components.css?v=20260829b">
+<link rel="stylesheet" href="css/pages.css?v=20260829b">
 </head>
 <body>
 
@@ -55,8 +55,8 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 
 <main class="container">
 
-  <h1 class="section-title" style="font-family: var(--font-serif); font-size: 28px; margin-top: 20px;">Cycles des géants</h1>
-  <p style="font-size: 13px; color: var(--text3); margin-top: -6px;">Où en sont les plus grandes entreprises mondiales dans leur cycle — pas un outil de trading.</p>
+  <h1 class="section-title" style="font-family: var(--font-serif); font-size: 28px; margin-top: 20px;">Ma watchlist</h1>
+  <p style="font-size: 13px; color: var(--text3); margin-top: -6px;">Cours et ratios réels (Finnhub) sur les entreprises que tu suis — l'analyse qualitative (cycle, scénarios) arrivera avec Anthropic.</p>
 
   <div class="category-tabs">
     <button class="category-tab active" data-cat="all">Tous</button>
@@ -67,279 +67,33 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
     <button class="category-tab" data-cat="energie">Énergie</button>
   </div>
 
-  <section class="section company-list" id="company-list" style="margin-bottom: 24px;">
+  <button class="btn-deep" id="toggle-add-form" style="margin-top: 14px;" data-action="toggle-add-form">+ Ajouter une entreprise</button>
 
-    <!-- Apple — carte avec analyse approfondie ouverte en exemple -->
-    <article class="card company-card" data-cat="tech" id="company-apple">
-      <div class="company-head">
-        <div class="company-name-row">
-          <span class="company-name">Apple</span>
-          <span class="company-sector">Tech · Matériel &amp; services</span>
-        </div>
-        <span class="cycle-phase maturite">🟡 Maturité</span>
-      </div>
+  <form class="card" id="add-company-form" style="margin-top: 10px; gap: 10px; display: none;">
+    <div class="login-field">
+      <label for="add-symbol">Symbole boursier (ex : AAPL, MC.PA)</label>
+      <input type="text" id="add-symbol" required autocomplete="off" placeholder="AAPL">
+    </div>
+    <div class="login-field">
+      <label for="add-name">Nom affiché</label>
+      <input type="text" id="add-name" required autocomplete="off" placeholder="Apple">
+    </div>
+    <div class="login-field">
+      <label for="add-category">Catégorie</label>
+      <select id="add-category">
+        <option value="tech">Tech</option>
+        <option value="finance">Finance</option>
+        <option value="industrie">Industrie &amp; Luxe</option>
+        <option value="emergents">Émergents</option>
+        <option value="energie">Énergie</option>
+      </select>
+    </div>
+    <button type="submit" class="btn">Ajouter à la watchlist</button>
+  </form>
 
-      <div class="horizons">
-        <div class="horizon">
-          <span class="horizon-label">Court terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Consolidation attendue avant les résultats trimestriels.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Moyen terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Cycle de renouvellement matériel porté par l'IA embarquée.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Long terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Diversification services toujours en croissance structurelle.</span>
-        </div>
-      </div>
-
-      <button class="btn-deep" data-action="toggle-deep">Réduire ←</button>
-
-      <div class="deep-analysis" id="apple-deep">
-        <div>
-          <div class="deep-block-title">Historique des cycles (10 ans)</div>
-          <div class="chart-container">
-            <canvas id="chart-apple"></canvas>
-          </div>
-        </div>
-
-        <div>
-          <div class="deep-block-title">Ratios financiers clés</div>
-          <div class="ratios-grid">
-            <div class="ratio-item">
-              <span class="ratio-label">PER actuel</span>
-              <span class="ratio-value">29.4x</span>
-              <span class="ratio-hist">moy. 10 ans : 24.1x</span>
-            </div>
-            <div class="ratio-item">
-              <span class="ratio-label">P/B</span>
-              <span class="ratio-value">48.2x</span>
-              <span class="ratio-hist">moy. 10 ans : 31.6x</span>
-            </div>
-            <div class="ratio-item">
-              <span class="ratio-label">ROE</span>
-              <span class="ratio-value">156%</span>
-              <span class="ratio-hist">moy. 10 ans : 98%</span>
-            </div>
-            <div class="ratio-item">
-              <span class="ratio-label">Dette/EBITDA</span>
-              <span class="ratio-value">1.1x</span>
-              <span class="ratio-hist">moy. 10 ans : 1.4x</span>
-            </div>
-            <div class="ratio-item">
-              <span class="ratio-label">Croissance CA (3a)</span>
-              <span class="ratio-value">+6.2%</span>
-              <span class="ratio-hist">moy. secteur : +8.9%</span>
-            </div>
-            <div class="ratio-item">
-              <span class="ratio-label">Marge nette (3a)</span>
-              <span class="ratio-value">25.8%</span>
-              <span class="ratio-hist">moy. secteur : 18.3%</span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="deep-block-title">Scénarios IA</div>
-          <div class="scenarios-list">
-            <div class="scenario-card haussier">
-              <div class="scenario-head">
-                <span class="scenario-name">↑ Scénario haussier</span>
-                <span class="scenario-prob-badge">30%</span>
-              </div>
-              <p class="scenario-desc">Le cycle de renouvellement iPhone porté par l'IA dépasse les attentes, les marges services accélèrent, et un nouveau segment matériel prend part de marché plus vite que prévu.</p>
-            </div>
-            <div class="scenario-card central">
-              <div class="scenario-head">
-                <span class="scenario-name">→ Scénario central</span>
-                <span class="scenario-prob-badge">50%</span>
-              </div>
-              <p class="scenario-desc">Croissance modérée alignée sur les dernières années, portée par les services, avec un matériel en légère érosion de marge face à la concurrence chinoise.</p>
-            </div>
-            <div class="scenario-card baissier">
-              <div class="scenario-head">
-                <span class="scenario-name">↓ Scénario baissier</span>
-                <span class="scenario-prob-badge">20%</span>
-              </div>
-              <p class="scenario-desc">Ralentissement en Chine plus marqué qu'anticipé, pression réglementaire accrue sur l'App Store, et cycle de renouvellement plus long qu'attendu.</p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="deep-block-title">Points de vigilance</div>
-          <div class="vigilance-list">
-            <div class="vigilance-item">⚠️ Dépendance à la Chine pour la production et une part significative du chiffre d'affaires</div>
-            <div class="vigilance-item">⚠️ Enquêtes antitrust actives en Europe et aux USA sur l'App Store</div>
-          </div>
-        </div>
-
-        <div>
-          <div class="deep-block-title">Catalyseurs potentiels</div>
-          <div class="catalyst-list">
-            <div class="catalyst-item">✅ Lancement d'un nouveau segment matériel autour de l'IA embarquée</div>
-            <div class="catalyst-item">✅ Accélération de la marge services via la publicité et les abonnements</div>
-          </div>
-        </div>
-
-        <p class="disclaimer">Analyse IA — pas un conseil financier. Contenu généré à des fins de compréhension du monde, pas de décision d'investissement.</p>
-      </div>
-    </article>
-
-    <!-- Nvidia -->
-    <article class="card company-card" data-cat="tech" id="company-nvidia">
-      <div class="company-head">
-        <div class="company-name-row">
-          <span class="company-name">Nvidia</span>
-          <span class="company-sector">Tech · Semiconducteurs</span>
-        </div>
-        <span class="cycle-phase expansion">🟢 Expansion</span>
-      </div>
-      <div class="horizons">
-        <div class="horizon">
-          <span class="horizon-label">Court terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Demande data centers toujours supérieure à l'offre.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Moyen terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Nouvelle génération de puces attendue en fin d'année.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Long terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Concurrence interne des géants du cloud à surveiller.</span>
-        </div>
-      </div>
-      <button class="btn-deep" data-action="toggle-deep">Analyse approfondie →</button>
-      <div class="deep-analysis hidden"></div>
-    </article>
-
-    <!-- JPMorgan -->
-    <article class="card company-card" data-cat="finance" id="company-jpmorgan-chase">
-      <div class="company-head">
-        <div class="company-name-row">
-          <span class="company-name">JPMorgan Chase</span>
-          <span class="company-sector">Finance · Banque</span>
-        </div>
-        <span class="cycle-phase expansion">🟢 Expansion</span>
-      </div>
-      <div class="horizons">
-        <div class="horizon">
-          <span class="horizon-label">Court terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Marge nette d'intérêt soutenue par les taux actuels.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Moyen terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Ralentissement possible si les taux baissent en 2027.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Long terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Position dominante consolidée sur la banque d'investissement.</span>
-        </div>
-      </div>
-      <button class="btn-deep" data-action="toggle-deep">Analyse approfondie →</button>
-      <div class="deep-analysis hidden"></div>
-    </article>
-
-    <!-- LVMH -->
-    <article class="card company-card" data-cat="industrie" id="company-lvmh">
-      <div class="company-head">
-        <div class="company-name-row">
-          <span class="company-name">LVMH</span>
-          <span class="company-sector">Industrie &amp; Luxe</span>
-        </div>
-        <span class="cycle-phase contraction">🔴 Contraction</span>
-      </div>
-      <div class="horizons">
-        <div class="horizon">
-          <span class="horizon-label">Court terme</span>
-          <span class="horizon-arrow down">↓</span>
-          <span class="horizon-value">Demande chinoise en luxe toujours atone.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Moyen terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Stabilisation attendue si la consommation chinoise repart.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Long terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Portefeuille de marques toujours parmi les plus solides du secteur.</span>
-        </div>
-      </div>
-      <button class="btn-deep" data-action="toggle-deep">Analyse approfondie →</button>
-      <div class="deep-analysis hidden"></div>
-    </article>
-
-    <!-- Saudi Aramco -->
-    <article class="card company-card" data-cat="emergents" id="company-saudi-aramco">
-      <div class="company-head">
-        <div class="company-name-row">
-          <span class="company-name">Saudi Aramco</span>
-          <span class="company-sector">Émergents · Énergie</span>
-        </div>
-        <span class="cycle-phase maturite">🟡 Maturité</span>
-      </div>
-      <div class="horizons">
-        <div class="horizon">
-          <span class="horizon-label">Court terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Prix du baril stabilisé par les quotas OPEP+.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Moyen terme</span>
-          <span class="horizon-arrow down">↓</span>
-          <span class="horizon-value">Pression de la transition énergétique sur la demande long terme.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Long terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Diversification progressive vers la pétrochimie et l'hydrogène.</span>
-        </div>
-      </div>
-      <button class="btn-deep" data-action="toggle-deep">Analyse approfondie →</button>
-      <div class="deep-analysis hidden"></div>
-    </article>
-
-    <!-- ExxonMobil -->
-    <article class="card company-card" data-cat="energie" id="company-exxonmobil">
-      <div class="company-head">
-        <div class="company-name-row">
-          <span class="company-name">ExxonMobil</span>
-          <span class="company-sector">Énergie · Pétrole &amp; gaz</span>
-        </div>
-        <span class="cycle-phase reprise">🔵 Reprise</span>
-      </div>
-      <div class="horizons">
-        <div class="horizon">
-          <span class="horizon-label">Court terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Marges de raffinage en amélioration ce trimestre.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Moyen terme</span>
-          <span class="horizon-arrow up">↑</span>
-          <span class="horizon-value">Montée en puissance des actifs récemment acquis au Guyana.</span>
-        </div>
-        <div class="horizon">
-          <span class="horizon-label">Long terme</span>
-          <span class="horizon-arrow neutral">→</span>
-          <span class="horizon-value">Investissements bas-carbone encore marginaux dans le mix global.</span>
-        </div>
-      </div>
-      <button class="btn-deep" data-action="toggle-deep">Analyse approfondie →</button>
-      <div class="deep-analysis hidden"></div>
-    </article>
-
+  <section class="section company-list" id="company-list" style="margin-bottom: 24px; margin-top: 16px;">
+    <div class="skeleton" style="height: 140px; margin-bottom: 14px;"></div>
+    <div class="skeleton" style="height: 140px;"></div>
   </section>
 
 </main>
@@ -354,13 +108,12 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="js/api.js?v=20260829a"></script>
-<script src="js/auth.js?v=20260829a"></script>
-<script src="js/calendar-widget.js?v=20260829a"></script>
-<script src="js/search.js?v=20260829a"></script>
-<script src="js/utils.js?v=20260829a"></script>
-<script src="js/analyse.js?v=20260829a"></script>
-<script src="js/interactions.js?v=20260829a"></script>
+<script src="js/api.js?v=20260829b"></script>
+<script src="js/auth.js?v=20260829b"></script>
+<script src="js/calendar-widget.js?v=20260829b"></script>
+<script src="js/search.js?v=20260829b"></script>
+<script src="js/utils.js?v=20260829b"></script>
+<script src="js/analyse.js?v=20260829b"></script>
+<script src="js/interactions.js?v=20260829b"></script>
 </body>
 </html>

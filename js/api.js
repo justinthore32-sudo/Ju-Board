@@ -151,6 +151,36 @@ async function fetchEarnings(symbols) {
   return resp.json();
 }
 
+/* ---------- WATCHLIST (page Analyse, via proxy) ---------- */
+async function fetchWatchlist() {
+  const resp = await apiFetch('/api/watchlist');
+  if (!resp.ok) throw new Error(`Erreur watchlist (${resp.status})`);
+  return resp.json();
+}
+
+async function updateWatchlist(watchlist) {
+  const resp = await apiFetch('/api/watchlist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ watchlist })
+  });
+  if (!resp.ok) throw new Error(`Erreur mise à jour watchlist (${resp.status})`);
+  return resp.json();
+}
+
+/* ---------- COURS & RATIOS (Finnhub, via proxy) ---------- */
+async function fetchStockQuotes(symbols) {
+  const resp = await apiFetch(`/api/stock-quote?symbols=${encodeURIComponent(symbols.join(','))}`);
+  if (!resp.ok) throw new Error(`Erreur cours (${resp.status})`);
+  return resp.json();
+}
+
+async function fetchStockMetrics(symbols) {
+  const resp = await apiFetch(`/api/stock-metrics?symbols=${encodeURIComponent(symbols.join(','))}`);
+  if (!resp.ok) throw new Error(`Erreur ratios (${resp.status})`);
+  return resp.json();
+}
+
 async function fetchTopHeadlines(category = 'general') {
   const resp = await apiFetch(`/api/top-headlines?category=${encodeURIComponent(category)}&country=fr`);
   if (!resp.ok) throw new Error(`Erreur NewsAPI (${resp.status})`);

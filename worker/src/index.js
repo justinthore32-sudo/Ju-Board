@@ -503,6 +503,130 @@ async function handleEarnings(request, env, ctx) {
   });
 }
 
+/* ---------- WATCHLIST (page Analyse) ---------- */
+const WATCHLIST_CATEGORIES = ['tech', 'finance', 'industrie', 'emergents', 'energie'];
+
+const DEFAULT_WATCHLIST = [
+  { symbol: 'AAPL', name: 'Apple', category: 'tech' },
+  { symbol: 'NVDA', name: 'Nvidia', category: 'tech' },
+  { symbol: 'JPM', name: 'JPMorgan Chase', category: 'finance' },
+  { symbol: 'MC.PA', name: 'LVMH', category: 'industrie' },
+  { symbol: '2222.SR', name: 'Saudi Aramco', category: 'emergents' },
+  { symbol: 'XOM', name: 'ExxonMobil', category: 'energie' }
+];
+
+async function handleGetWatchlist(request, env) {
+  const session = await getSession(request, env);
+  if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+  const raw = await env.USERS.get(`watchlist:${session.username}`);
+  const watchlist = raw ? JSON.parse(raw) : DEFAULT_WATCHLIST;
+  return jsonResponse({ watchlist }, env);
+}
+
+async function handleUpdateWatchlist(request, env) {
+  const session = await getSession(request, env);
+  if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+  const { watchlist } = await request.json();
+  if (!Array.isArray(watchlist)) return jsonResponse({ error: 'Format invalide' }, env, 400);
+
+  const cleaned = watchlist
+    .filter((item) => item && item.symbol)
+    .map((item) => ({
+      symbol: String(item.symbol).toUpperCase().trim().slice(0, 12),
+      name: String(item.name || item.symbol).trim().slice(0, 60),
+      category: WATCHLIST_CATEGORIES.includes(item.category) ? item.category : 'tech'
+    }))
+    .slice(0, 30);
+
+  await env.USERS.put(`watchlist:${session.username}`, JSON.stringify(cleaned));
+  return jsonResponse({ watchlist: cleaned }, env);
+}
+
+/* Finnhub free-tier renvoie du 429 des qu'on l'interroge en parallele
+   (Promise.all) pour plusieurs symboles a la fois - il faut espacer les
+   appels au lieu de les envoyer tous en meme temps. */
+async function fetchSequential(symbols, fetchOne, delayMs = 600) {
+  const results = [];
+  for (let i = 0; i < symbols.length; i += 1) {
+    results.push(await fetchOne(symbols[i]));
+    if (delayMs && i < symbols.length - 1) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return results;
+}
+
+/* ---------- COURS EN DIRECT (Finnhub /quote, via proxy) ---------- */
+async function handleStockQuote(request, env, ctx) {
+  const url = new URL(request.url);
+  const symbols = (url.searchParams.get('symbols') || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 30);
+
+  const cache = caches.default;
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, { headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'HIT' } });
+  }
+
+  const results = await fetchSequential(symbols, async (symbol) => {
+    try {
+      const resp = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${env.FINNHUB_KEY}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      if (data.c === 0 && data.pc === 0) throw new Error('Pas de donnée disponible');
+      return { symbol, price: data.c, change: data.d, changePercent: data.dp, prevClose: data.pc };
+    } catch (err) {
+      return { symbol, error: err.message };
+    }
+  });
+
+  const payload = JSON.stringify({ status: 'ok', results });
+  const hasSuccess = results.some((r) => !r.error);
+  if (hasSuccess) {
+    ctx.waitUntil(cache.put(cacheKey, new Response(payload, { headers: { 'content-type': 'application/json', 'Cache-Control': 'max-age=300' } })));
+  }
+  return new Response(payload, { headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' } });
+}
+
+/* ---------- RATIOS FINANCIERS (Finnhub /stock/metric, via proxy) ---------- */
+async function handleStockMetrics(request, env, ctx) {
+  const url = new URL(request.url);
+  const symbols = (url.searchParams.get('symbols') || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 30);
+
+  const cache = caches.default;
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, { headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'HIT' } });
+  }
+
+  const results = await fetchSequential(symbols, async (symbol) => {
+    try {
+      const resp = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all&token=${env.FINNHUB_KEY}`);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      const m = data.metric || {};
+      if (Object.keys(m).length === 0) throw new Error('Pas de donnée disponible');
+      return {
+        symbol,
+        per: m.peBasicExclExtraTTM ?? null,
+        roe: m.roeTTM ?? null,
+        margeNette: m.netProfitMarginTTM ?? null,
+        detteCapitauxPropres: m['totalDebt/totalEquityQuarterly'] ?? null
+      };
+    } catch (err) {
+      return { symbol, error: err.message };
+    }
+  });
+
+  const payload = JSON.stringify({ status: 'ok', results });
+  const hasSuccess = results.some((r) => !r.error);
+  if (hasSuccess) {
+    ctx.waitUntil(cache.put(cacheKey, new Response(payload, { headers: { 'content-type': 'application/json', 'Cache-Control': 'max-age=21600' } })));
+  }
+  return new Response(payload, { headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' } });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -560,6 +684,18 @@ export default {
       }
       if (url.pathname === '/api/earnings' && request.method === 'GET') {
         return await handleEarnings(request, env, ctx);
+      }
+      if (url.pathname === '/api/watchlist' && request.method === 'GET') {
+        return await handleGetWatchlist(request, env);
+      }
+      if (url.pathname === '/api/watchlist' && request.method === 'POST') {
+        return await handleUpdateWatchlist(request, env);
+      }
+      if (url.pathname === '/api/stock-quote' && request.method === 'GET') {
+        return await handleStockQuote(request, env, ctx);
+      }
+      if (url.pathname === '/api/stock-metrics' && request.method === 'GET') {
+        return await handleStockMetrics(request, env, ctx);
       }
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {

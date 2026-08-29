@@ -1,108 +1,215 @@
 /* ============================================
    JU BOARD — analyse.js
-   Page Analyse : filtres catégories, toggle analyse
-   approfondie, graphique de cycle Chart.js
+   Page Analyse : watchlist personnalisable avec
+   cours et ratios réels (Finnhub, via le Worker).
+
+   L'analyse qualitative (cycle, scénarios, points de
+   vigilance) n'est PAS générée ici — elle demande un
+   vrai jugement et attend qu'Anthropic soit branché.
+   Cette page se limite volontairement aux chiffres
+   vérifiables.
    ============================================ */
+
+const CATEGORY_LABELS = {
+  tech: 'Tech',
+  finance: 'Finance',
+  industrie: 'Industrie & Luxe',
+  emergents: 'Émergents',
+  energie: 'Énergie'
+};
+
+let currentWatchlist = [];
+let quotesBySymbol = {};
+let metricsBySymbol = {};
+let activeCategory = 'all';
+
+function fmtRatio(value, suffix = '') {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  return `${value.toFixed(2)}${suffix}`;
+}
+
+function fmtPrice(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  return value.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderCompanyCard(entry) {
+  const quote = quotesBySymbol[entry.symbol];
+  const metric = metricsBySymbol[entry.symbol];
+
+  let priceBlock;
+  if (quote && !quote.error) {
+    const dir = quote.change > 0 ? 'up' : quote.change < 0 ? 'down' : 'neutral';
+    const sign = quote.change > 0 ? '+' : '';
+    priceBlock = `
+      <div class="indicator ${dir}">
+        <span class="mono">${fmtPrice(quote.price)} $</span>
+        <span class="mono">${sign}${fmtRatio(quote.changePercent, '%')}</span>
+      </div>`;
+  } else {
+    priceBlock = `<span class="cycle-phase maturite">Cours indisponible</span>`;
+  }
+
+  const ratiosBlock = metric && !metric.error ? `
+    <div class="ratios-grid">
+      <div class="ratio-item">
+        <span class="ratio-label">PER</span>
+        <span class="ratio-value">${fmtRatio(metric.per, 'x')}</span>
+      </div>
+      <div class="ratio-item">
+        <span class="ratio-label">ROE</span>
+        <span class="ratio-value">${fmtRatio(metric.roe, '%')}</span>
+      </div>
+      <div class="ratio-item">
+        <span class="ratio-label">Marge nette</span>
+        <span class="ratio-value">${fmtRatio(metric.margeNette, '%')}</span>
+      </div>
+      <div class="ratio-item">
+        <span class="ratio-label">Dette / capitaux propres</span>
+        <span class="ratio-value">${fmtRatio(metric.detteCapitauxPropres, 'x')}</span>
+      </div>
+    </div>` : `
+    <p style="font-size: 12px; color: var(--text3);">Ratios financiers indisponibles pour ce titre (couverture Finnhub gratuite limitée aux bourses américaines).</p>`;
+
+  return `
+    <article class="card company-card" data-cat="${entry.category}">
+      <div class="company-head">
+        <div class="company-name-row">
+          <span class="company-name">${entry.name}</span>
+          <span class="company-sector">${CATEGORY_LABELS[entry.category] || entry.category} · ${entry.symbol}</span>
+        </div>
+        ${priceBlock}
+      </div>
+
+      ${ratiosBlock}
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-top: 10px; border-top: 1px solid var(--border);">
+        <span style="font-size: 11px; color: var(--text3);">🤖 Analyse qualitative disponible une fois Anthropic branché.</span>
+        <button class="btn-remove-company" data-action="remove" data-symbol="${entry.symbol}">Retirer</button>
+      </div>
+    </article>`;
+}
+
+function renderCompanyList() {
+  const list = document.getElementById('company-list');
+  if (!list) return;
+
+  if (currentWatchlist.length === 0) {
+    list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Ta watchlist est vide — ajoute une entreprise ci-dessus.</p>';
+    return;
+  }
+
+  const visible = activeCategory === 'all' ? currentWatchlist : currentWatchlist.filter((e) => e.category === activeCategory);
+  if (visible.length === 0) {
+    list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Aucune entreprise dans cette catégorie.</p>';
+    return;
+  }
+
+  list.innerHTML = visible.map(renderCompanyCard).join('');
+
+  list.querySelectorAll('[data-action="remove"]').forEach((btn) => {
+    btn.addEventListener('click', () => removeFromWatchlist(btn.dataset.symbol));
+  });
+}
+
+async function loadWatchlistPage() {
+  const list = document.getElementById('company-list');
+  if (!list || typeof fetchWatchlist !== 'function') return;
+
+  try {
+    const data = await fetchWatchlist();
+    currentWatchlist = data.watchlist || [];
+  } catch (err) {
+    list.innerHTML = `<p style="color: var(--red); font-size: 13px;">Erreur de chargement de la watchlist : ${err.message}</p>`;
+    return;
+  }
+
+  if (currentWatchlist.length === 0) {
+    renderCompanyList();
+    return;
+  }
+
+  const symbols = currentWatchlist.map((e) => e.symbol);
+  try {
+    const [quotesData, metricsData] = await Promise.all([
+      fetchStockQuotes(symbols),
+      fetchStockMetrics(symbols)
+    ]);
+    quotesBySymbol = {};
+    (quotesData.results || []).forEach((r) => { quotesBySymbol[r.symbol] = r; });
+    metricsBySymbol = {};
+    (metricsData.results || []).forEach((r) => { metricsBySymbol[r.symbol] = r; });
+  } catch (err) {
+    /* on affiche quand même les cartes, sans cours/ratios */
+  }
+
+  renderCompanyList();
+}
+
+async function removeFromWatchlist(symbol) {
+  currentWatchlist = currentWatchlist.filter((e) => e.symbol !== symbol);
+  try {
+    await updateWatchlist(currentWatchlist);
+    if (typeof showToast === 'function') showToast('Retiré de la watchlist');
+  } catch (err) {
+    if (typeof showToast === 'function') showToast('Erreur : impossible de mettre à jour la watchlist');
+  }
+  renderCompanyList();
+}
 
 function initCategoryTabs() {
   const tabs = document.querySelectorAll('.category-tab');
-  const cards = document.querySelectorAll('.company-card');
-
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
       tabs.forEach((t) => t.classList.remove('active'));
       tab.classList.add('active');
-      const cat = tab.dataset.cat;
-      cards.forEach((card) => {
-        const match = cat === 'all' || card.dataset.cat === cat;
-        card.classList.toggle('hidden', !match);
-      });
+      activeCategory = tab.dataset.cat;
+      renderCompanyList();
     });
   });
 }
 
-function initDeepToggle() {
-  document.querySelectorAll('[data-action="toggle-deep"]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const card = btn.closest('.company-card');
-      const deep = card.querySelector('.deep-analysis');
-      const isHidden = deep.classList.contains('hidden');
-      deep.classList.toggle('hidden');
-      btn.textContent = isHidden ? 'Réduire ←' : 'Analyse approfondie →';
-    });
+function initAddForm() {
+  const toggleBtn = document.getElementById('toggle-add-form');
+  const form = document.getElementById('add-company-form');
+  if (!toggleBtn || !form) return;
+
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = form.style.display === 'none';
+    form.style.display = isHidden ? 'flex' : 'none';
+    form.style.flexDirection = 'column';
+    toggleBtn.textContent = isHidden ? 'Annuler' : '+ Ajouter une entreprise';
   });
-}
 
-function initCycleChart() {
-  const canvas = document.getElementById('chart-apple');
-  if (!canvas || typeof Chart === 'undefined') return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const symbol = document.getElementById('add-symbol').value.trim().toUpperCase();
+    const name = document.getElementById('add-name').value.trim();
+    const category = document.getElementById('add-category').value;
+    if (!symbol || !name) return;
 
-  const years = ['2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026'];
-  const values = [42, 44, 55, 78, 145, 160, 175, 220, 235, 228];
-
-  const cycleZones = {
-    id: 'cycleZones',
-    beforeDraw(chart) {
-      const { ctx, chartArea, scales } = chart;
-      if (!chartArea) return;
-      const zones = [
-        { from: 0, to: 3, color: 'rgba(37, 99, 235, 0.06)' },
-        { from: 3, to: 8, color: 'rgba(22, 163, 74, 0.06)' },
-        { from: 8, to: 9, color: 'rgba(217, 119, 6, 0.08)' }
-      ];
-      ctx.save();
-      zones.forEach((zone) => {
-        const x1 = scales.x.getPixelForValue(zone.from);
-        const x2 = scales.x.getPixelForValue(zone.to);
-        ctx.fillStyle = zone.color;
-        ctx.fillRect(x1, chartArea.top, x2 - x1, chartArea.bottom - chartArea.top);
-      });
-      ctx.restore();
+    if (currentWatchlist.some((entry) => entry.symbol === symbol)) {
+      if (typeof showToast === 'function') showToast('Ce titre est déjà dans ta watchlist');
+      return;
     }
-  };
 
-  new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: years,
-      datasets: [{
-        data: values,
-        borderColor: '#2563EB',
-        backgroundColor: 'rgba(37, 99, 235, 0.08)',
-        borderWidth: 2,
-        pointRadius: 0,
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { grid: { color: 'rgba(148, 163, 184, 0.15)' }, ticks: { font: { size: 10 } } }
-      }
-    },
-    plugins: [cycleZones]
+    currentWatchlist.push({ symbol, name, category });
+    try {
+      await updateWatchlist(currentWatchlist);
+      if (typeof showToast === 'function') showToast('Ajouté à la watchlist');
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('Erreur : impossible de mettre à jour la watchlist');
+    }
+
+    form.reset();
+    form.style.display = 'none';
+    toggleBtn.textContent = '+ Ajouter une entreprise';
+    loadWatchlistPage();
   });
-}
-
-function scrollToHashCompany() {
-  if (!window.location.hash) return;
-  const target = document.querySelector(window.location.hash);
-  if (!target) return;
-  window.setTimeout(() => {
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    target.style.transition = 'box-shadow 0.3s';
-    target.style.boxShadow = '0 0 0 3px var(--accent)';
-    window.setTimeout(() => { target.style.boxShadow = ''; }, 1800);
-  }, 150);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initCategoryTabs();
-  initDeepToggle();
-  initCycleChart();
-  scrollToHashCompany();
+  initAddForm();
+  loadWatchlistPage();
 });

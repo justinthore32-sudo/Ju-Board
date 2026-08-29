@@ -227,7 +227,8 @@ body.login-page {
   gap: 6px;
 }
 
-.login-field span {
+.login-field span,
+.login-field label {
   font-family: var(--font-sans);
   font-weight: 700;
   font-size: 11px;
@@ -236,7 +237,8 @@ body.login-page {
   color: var(--text3);
 }
 
-.login-field input {
+.login-field input,
+.login-field select {
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
@@ -245,7 +247,8 @@ body.login-page {
   color: var(--text);
 }
 
-.login-field input:focus {
+.login-field input:focus,
+.login-field select:focus {
   outline: none;
   border-color: var(--accent);
 }
@@ -742,6 +745,20 @@ body.login-page {
   font-size: 10px;
   color: var(--text3);
 }
+
+.btn-remove-company {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 4px 10px;
+  color: var(--red);
+}
+
+.btn-remove-company:hover { background: var(--down-bg); }
 
 .scenarios-list {
   display: flex;
