@@ -126,13 +126,16 @@ async function loadSectors() {
     </a>`).join('');
 }
 
+/* "À ne pas manquer" et "Actualité mondiale" fusionnés en un seul bloc
+   ("Aussi dans l'actu") : c'était deux appels NewsAPI distincts pour un
+   total de 8 cartes sur l'accueil, en plus de Priorité Absolue et des
+   10 secteurs — beaucoup trop dense pour un coup d'oeil rapide. */
 function refreshHome() {
   loadNewsBlock('priority-list', 'marchés OR bourse OR taux OR inflation OR résultats OR Fed OR BCE OR fusion OR acquisition', {
-    count: 6,
+    count: 4,
     domains: 'lesechos.fr,capital.fr,challenges.fr'
   });
-  loadNewsBlock('highlight-list', 'découverte OR avancée scientifique OR record positif', { count: 3 });
-  loadNewsBlock('world-list', 'international OR politique OR économie OR monde', { count: 5 });
+  loadNewsBlock('also-list', 'découverte OR avancée scientifique OR international OR politique OR économie OR monde', { count: 4 });
   loadSectors();
 }
 
