@@ -73,8 +73,8 @@ function renderArticle(article, domainKey) {
         <span class="news-time">${timeAgo(article.publishedAt)}</span>
         ${typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : ''}
       </div>
-      <h3 class="news-title">${article.title || 'Sans titre'}</h3>
-      <p class="news-summary">${summary}</p>
+      <h3 class="news-title">${typeof linkifyGlossary === 'function' ? linkifyGlossary(article.title || 'Sans titre') : (article.title || 'Sans titre')}</h3>
+      <p class="news-summary">${typeof linkifyGlossary === 'function' ? linkifyGlossary(summary) : summary}</p>
       <a class="btn-expand" href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">Lire plus →</a>
     </article>`;
 }

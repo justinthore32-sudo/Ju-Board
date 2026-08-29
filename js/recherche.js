@@ -52,8 +52,8 @@ function renderNewsResult(article) {
     <article class="card result-item">
       <span class="result-type">News</span>
       ${typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : ''}
-      <h3 class="result-title"><a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">${article.title || 'Sans titre'}</a></h3>
-      <p class="result-excerpt">${article.description || ''}</p>
+      <h3 class="result-title"><a href="${buildArticleUrl(article, timeAgo(article.publishedAt))}">${typeof linkifyGlossary === 'function' ? linkifyGlossary(article.title || 'Sans titre') : (article.title || 'Sans titre')}</a></h3>
+      <p class="result-excerpt">${typeof linkifyGlossary === 'function' ? linkifyGlossary(article.description || '') : (article.description || '')}</p>
     </article>`;
 }
 

@@ -110,6 +110,56 @@ function impactBadgeHtml(article) {
   return '';
 }
 
+/* ---------- GLOSSAIRE CLIQUABLE ----------
+   Même liste de termes que search.js (dupliquée volontairement : ici on
+   matche par regex dans le texte des news, là-bas par recherche tapée —
+   deux usages différents, pas la peine de coupler les deux fichiers). */
+const GLOSSARY_TERMS = [
+  { term: 'Quantitative tightening', definition: "Politique monétaire par laquelle une banque centrale réduit la taille de son bilan, à l'inverse du quantitative easing.", pattern: /quantitative tightening/i },
+  { term: 'Quantitative easing', definition: "Politique monétaire non conventionnelle où une banque centrale achète des actifs financiers pour injecter des liquidités dans l'économie.", pattern: /quantitative easing/i },
+  { term: 'PER (Price Earnings Ratio)', definition: 'Ratio cours sur bénéfice — mesure combien de fois le bénéfice annuel les investisseurs sont prêts à payer pour une action.', pattern: /\bPER\b/ },
+  { term: 'ROE (Return on Equity)', definition: "Rentabilité des capitaux propres — mesure la capacité d'une entreprise à générer du profit avec l'argent de ses actionnaires.", pattern: /\bROE\b/ },
+  { term: 'OPEP+', definition: 'Organisation des pays exportateurs de pétrole élargie à des alliés comme la Russie, qui coordonne les niveaux de production mondiaux.', pattern: /opep\+?/i },
+  { term: 'Cycle économique', definition: "Alternance de phases d'expansion, de pic, de contraction et de reprise que traverse une économie ou une entreprise dans le temps.", pattern: /cycle économique/i },
+  { term: 'Inflation', definition: "Hausse générale et durable des prix, qui réduit le pouvoir d'achat de la monnaie.", pattern: /\binflation\b/i },
+  { term: 'PIB (Produit Intérieur Brut)', definition: "Valeur totale des biens et services produits dans un pays sur une période donnée — indicateur clé de l'activité économique.", pattern: /\bPIB\b/ },
+  { term: 'Taux directeur', definition: "Taux d'intérêt fixé par une banque centrale, qui influence le coût du crédit dans toute l'économie.", pattern: /taux directeur/i },
+  { term: 'Géopolitique', definition: 'Étude des rapports entre la géographie, le pouvoir et les relations internationales entre États.', pattern: /géopolitique/i }
+];
+
+function escapeHtmlText(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/* Entoure le premier terme de glossaire trouvé dans un texte d'un <span>
+   cliquable — un seul par appel pour ne pas saturer les cartes de tags. */
+function linkifyGlossary(text) {
+  const safe = escapeHtmlText(text);
+  for (const g of GLOSSARY_TERMS) {
+    if (g.pattern.test(safe)) {
+      return safe.replace(g.pattern, (match) => `<span class="glossary-term" data-term="${encodeURIComponent(g.term)}">${match}</span>`);
+    }
+  }
+  return safe;
+}
+
+function initGlossaryTooltips() {
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('.glossary-term');
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const term = decodeURIComponent(el.dataset.term || '');
+    const entry = GLOSSARY_TERMS.find((g) => g.term === term);
+    if (entry && typeof showToast === 'function') {
+      showToast(`📖 ${entry.term} — ${entry.definition}`, 6000);
+    }
+  });
+}
+
 /* ---------- TOAST ---------- */
 function showToast(message, duration = 2500) {
   const toast = document.getElementById('toast');
@@ -127,4 +177,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   setGreetingDate();
   setWeather();
+  initGlossaryTooltips();
 });
