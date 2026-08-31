@@ -83,6 +83,18 @@ async function fetchUsers() {
   return resp.json();
 }
 
+async function fetchSessions() {
+  const resp = await apiFetch('/api/auth/sessions');
+  if (!resp.ok) throw new Error('Erreur chargement des sessions');
+  return resp.json();
+}
+
+async function revokeSession(token) {
+  const resp = await apiFetch(`/api/auth/sessions/${encodeURIComponent(token)}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error('Erreur de révocation');
+  return resp.json();
+}
+
 async function createUser(username, password, displayName, isAdmin) {
   const resp = await apiFetch('/api/auth/users', {
     method: 'POST',

@@ -20,9 +20,9 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="css/main.css?v=20260829e">
-<link rel="stylesheet" href="css/components.css?v=20260829e">
-<link rel="stylesheet" href="css/pages.css?v=20260829e">
+<link rel="stylesheet" href="css/main.css?v=20260831a">
+<link rel="stylesheet" href="css/components.css?v=20260831a">
+<link rel="stylesheet" href="css/pages.css?v=20260831a">
 </head>
 <body>
 
@@ -58,6 +58,14 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
     </div>
   </section>
 
+  <section class="section">
+    <h2 class="section-title" style="font-size: 16px;">Sessions actives</h2>
+    <p style="font-size: 12px; color: var(--text3); margin-top: -8px;">Un jeton volé reste valide 30 jours — révoque-le ici pour couper l'accès immédiatement.</p>
+    <div id="sessions-list" class="earnings-list">
+      <div class="card skeleton" style="height: 56px;"></div>
+    </div>
+  </section>
+
   <section class="section" style="margin-bottom: 32px;">
     <h2 class="section-title" style="font-size: 16px;">Créer un compte</h2>
     <form id="create-user-form" class="card" style="display:flex; flex-direction:column; gap:14px;">
@@ -85,9 +93,9 @@ if (!localStorage.getItem('ju-board-token')) { location.href = 'login.html'; }
 
 <div class="toast" id="toast"></div>
 
-<script src="js/api.js?v=20260829e"></script>
-<script src="js/auth.js?v=20260829e"></script>
-<script src="js/utils.js?v=20260829e"></script>
-<script src="js/admin.js?v=20260829e"></script>
+<script src="js/api.js?v=20260831a"></script>
+<script src="js/auth.js?v=20260831a"></script>
+<script src="js/utils.js?v=20260831a"></script>
+<script src="js/admin.js?v=20260831a"></script>
 </body>
 </html>

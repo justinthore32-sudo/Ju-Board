@@ -49,6 +49,7 @@ let lastTotalResults = 0;
 let loadedCount = 0;
 let currentQuery = '';
 let favorisActive = false;
+let historiqueActive = false;
 let searchFilters = { periode: '24h', type: 'tous' };
 
 function timeAgo(dateString) {
@@ -109,7 +110,13 @@ async function loadBrowse(append = false) {
   }
 
   const { query, domain } = buildBrowseQuery();
-  const sortBy = SORT_MAP[currentSort] || 'publishedAt';
+  /* "Impact élevé" ne veut rien dire pour NewsAPI (son "relevancy" trie par
+     correspondance textuelle, pas par impact réel — ça remontait des trucs
+     comme "les oiseaux dans un monde trop bruyant"). On récupère un lot plus
+     large trié par date, puis on le re-classe avec le même détecteur de
+     mots-clés (Fed/BCE/OPEP/fusion...) que le badge d'impact des cartes. */
+  const isImpactSort = currentSort === 'impact';
+  const sortBy = isImpactSort ? 'publishedAt' : (SORT_MAP[currentSort] || 'publishedAt');
 
   if (typeof fetchNews !== 'function') {
     list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">API News non configurée.</p>';
@@ -117,10 +124,14 @@ async function loadBrowse(append = false) {
   }
 
   try {
-    const data = await fetchNews(query, { sortBy, page: currentPage });
+    const data = await fetchNews(query, { sortBy, page: currentPage, pageSize: isImpactSort ? 50 : undefined });
     if (data.status !== 'ok') throw new Error(data.message || 'Erreur inconnue');
 
-    const articles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]');
+    let articles = (data.articles || []).filter((a) => a.title && a.title !== '[Removed]');
+    if (isImpactSort && typeof getImpactLevel === 'function') {
+      const rank = (a) => { const lvl = getImpactLevel(a); return lvl === 'fort' ? 2 : lvl === 'moyen' ? 1 : 0; };
+      articles = articles.slice().sort((a, b) => rank(b) - rank(a));
+    }
     lastTotalResults = data.totalResults || 0;
 
     if (!append && articles.length === 0) {
@@ -264,21 +275,48 @@ function renderFavorisView() {
     </article>`).join('');
 }
 
-/* ---------- ORCHESTRATION DES 3 MODES ---------- */
+function renderHistoriqueView() {
+  const list = document.getElementById('news-list');
+  const meta = document.getElementById('results-meta');
+  document.getElementById('load-more').classList.add('hidden');
+  meta.classList.remove('hidden');
+
+  const readData = typeof getReadData === 'function' ? getReadData() : {};
+  const entries = Object.entries(readData).sort((a, b) => (b[1].readAt || 0) - (a[1].readAt || 0));
+
+  if (entries.length === 0) {
+    meta.textContent = 'Aucun article lu pour le moment.';
+    list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Les articles balayés (swipe) ou marqués lus apparaîtront ici.</p>';
+    return;
+  }
+
+  meta.textContent = `${entries.length} article${entries.length > 1 ? 's' : ''} lu${entries.length > 1 ? 's' : ''}`;
+  list.innerHTML = entries.map(([, item]) => `
+    <article class="card result-item">
+      <span class="result-type">🕓 Lu</span>
+      <h3 class="result-title">${item.link ? `<a href="${item.link}">${item.title || 'Sans titre'}</a>` : (item.title || 'Sans titre')}</h3>
+    </article>`).join('');
+}
+
+/* ---------- ORCHESTRATION DES 4 MODES ---------- */
 function updateModeVisibility() {
   const browseFilters = document.getElementById('browse-filters');
   const searchFiltersEl = document.getElementById('search-filters');
   const favBtn = document.getElementById('favoris-toggle');
-  const searching = !favorisActive && currentQuery.trim().length > 0;
+  const histBtn = document.getElementById('historique-toggle');
+  const special = favorisActive || historiqueActive;
+  const searching = !special && currentQuery.trim().length > 0;
 
-  browseFilters.classList.toggle('hidden', favorisActive || searching);
-  searchFiltersEl.classList.toggle('hidden', favorisActive || !searching);
+  browseFilters.classList.toggle('hidden', special || searching);
+  searchFiltersEl.classList.toggle('hidden', special || !searching);
   favBtn.classList.toggle('active', favorisActive);
-  if (!favorisActive && !searching) document.getElementById('results-meta').classList.add('hidden');
+  histBtn.classList.toggle('active', historiqueActive);
+  if (!special && !searching) document.getElementById('results-meta').classList.add('hidden');
 }
 
 function refreshCurrentMode(append = false) {
   if (favorisActive) { renderFavorisView(); return; }
+  if (historiqueActive) { renderHistoriqueView(); return; }
   if (currentQuery.trim()) { runNewsSearch(append); return; }
   loadBrowse(append);
 }
@@ -290,6 +328,7 @@ function initSearchInput() {
 
   input.addEventListener('input', () => {
     if (favorisActive) favorisActive = false;
+    if (historiqueActive) historiqueActive = false;
     currentQuery = input.value;
     updateModeVisibility();
     window.clearTimeout(debounceTimer);
@@ -303,6 +342,22 @@ function initFavorisToggle() {
   btn.addEventListener('click', () => {
     favorisActive = !favorisActive;
     if (favorisActive) {
+      historiqueActive = false;
+      document.getElementById('news-search-input').value = '';
+      currentQuery = '';
+    }
+    updateModeVisibility();
+    refreshCurrentMode(false);
+  });
+}
+
+function initHistoriqueToggle() {
+  const btn = document.getElementById('historique-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    historiqueActive = !historiqueActive;
+    if (historiqueActive) {
+      favorisActive = false;
       document.getElementById('news-search-input').value = '';
       currentQuery = '';
     }
@@ -396,6 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLoadMore();
   initSearchInput();
   initFavorisToggle();
+  initHistoriqueToggle();
   updateModeVisibility();
   const appliedFromUrl = applySectorFromUrl();
   if (!appliedFromUrl) loadBrowse();

@@ -91,6 +91,46 @@ async function loadUsers() {
   }
 }
 
+function renderSessions(sessions) {
+  const list = document.getElementById('sessions-list');
+  if (sessions.length === 0) {
+    list.innerHTML = '<p style="color: var(--text3); font-size: 13px;">Aucune session active.</p>';
+    return;
+  }
+
+  list.innerHTML = sessions.map((s) => `
+    <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px;" data-token="${s.token}">
+      <div class="earnings-item-left">
+        <span class="earnings-company">${s.displayName || s.username}${s.isCurrent ? ' · Cette session' : ''}</span>
+        <span class="earnings-date">@${s.username} · ${s.tokenMasked} · connecté le ${formatDate(s.loginAt)}</span>
+      </div>
+      ${!s.isCurrent ? `<button class="btn-expand" data-action="revoke-session" style="color:var(--red); flex-shrink:0;">Révoquer</button>` : ''}
+    </div>`).join('');
+
+  list.querySelectorAll('[data-action="revoke-session"]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const token = btn.closest('[data-token]').dataset.token;
+      if (!confirm('Révoquer cette session ? L\'appareil concerné devra se reconnecter.')) return;
+      try {
+        await revokeSession(token);
+        showToast('Session révoquée');
+        loadSessions();
+      } catch (err) {
+        showToast(err.message);
+      }
+    });
+  });
+}
+
+async function loadSessions() {
+  try {
+    const data = await fetchSessions();
+    renderSessions(data.sessions || []);
+  } catch (err) {
+    document.getElementById('sessions-list').innerHTML = `<p style="color: var(--red); font-size: 13px;">${err.message}</p>`;
+  }
+}
+
 function initCreateUserForm() {
   const form = document.getElementById('create-user-form');
   if (!form) return;
@@ -123,5 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   loadUsers();
+  loadSessions();
   initCreateUserForm();
 });

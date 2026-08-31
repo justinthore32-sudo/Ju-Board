@@ -270,11 +270,30 @@ body.login-page {
 /* ============ CALENDRIER (tableau) ============ */
 
 .table-wrap {
+  position: relative;
   overflow-x: auto;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
+}
+
+.table-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(to right, transparent, var(--bg-card));
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.table-wrap.scrolled-end::after {
+  opacity: 0;
 }
 
 .cal-table {

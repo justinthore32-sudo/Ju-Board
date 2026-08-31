@@ -211,6 +211,28 @@
   flex-shrink: 0;
 }
 
+/* ---------- INDICATEUR TIRER-POUR-RAFRAÎCHIR ---------- */
+.pull-indicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + var(--header-height) + 8px);
+  left: 50%;
+  transform: translateX(-50%) rotate(0deg);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--accent);
+  opacity: 0;
+  z-index: 90;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
 /* ---------- BOTTOM NAV ---------- */
 .bottom-nav {
   position: fixed;

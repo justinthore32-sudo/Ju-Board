@@ -210,6 +210,38 @@ async function handleListUsers(request, env) {
   return jsonResponse({ users }, env);
 }
 
+async function handleListSessions(request, env) {
+  const session = await getSession(request, env);
+  if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
+
+  const list = await env.SESSIONS.list({ prefix: 'session:' });
+  const sessions = await Promise.all(
+    list.keys.map(async (k) => {
+      const raw = await env.SESSIONS.get(k.name);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      const token = k.name.slice('session:'.length);
+      return {
+        token,
+        tokenMasked: `${token.slice(0, 6)}…${token.slice(-4)}`,
+        username: s.username,
+        displayName: s.displayName,
+        isCurrent: token === session.token,
+        loginAt: s.loginAt || null
+      };
+    })
+  );
+  const cleaned = sessions.filter(Boolean).sort((a, b) => (b.loginAt || 0) - (a.loginAt || 0));
+  return jsonResponse({ sessions: cleaned }, env);
+}
+
+async function handleRevokeSession(request, env, token) {
+  const session = await getSession(request, env);
+  if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
+  await env.SESSIONS.delete(`session:${token}`);
+  return jsonResponse({ ok: true }, env);
+}
+
 async function handleCreateUser(request, env) {
   const session = await getSession(request, env);
   if (!session || !session.isAdmin) return jsonResponse({ error: 'Accès refusé' }, env, 403);
@@ -394,9 +426,9 @@ async function handleNews(request, env, ctx) {
   );
 }
 
+/* Reuters et Les Échos retirés : bloquent systématiquement les requêtes
+   serveur (403/530, confirmé par test direct) — hors de notre contrôle. */
 const RSS_FEEDS = {
-  reuters: { url: 'https://feeds.reuters.com/reuters/businessNews', name: 'Reuters' },
-  lesechos: { url: 'https://www.lesechos.fr/rss/rss_une.xml', name: 'Les Échos' },
   lemonde: { url: 'https://www.lemonde.fr/rss/une.xml', name: 'Le Monde' },
   yahoo: { url: 'https://finance.yahoo.com/news/rssindex', name: 'Yahoo Finance' },
   nasa: { url: 'https://www.nasa.gov/rss/dyn/breaking_news.rss', name: 'NASA' }
@@ -659,6 +691,12 @@ export default {
       }
       if (url.pathname.startsWith('/api/auth/users/') && request.method === 'PATCH') {
         return await handleUpdateUser(request, env, decodeURIComponent(url.pathname.slice('/api/auth/users/'.length)));
+      }
+      if (url.pathname === '/api/auth/sessions' && request.method === 'GET') {
+        return await handleListSessions(request, env);
+      }
+      if (url.pathname.startsWith('/api/auth/sessions/') && request.method === 'DELETE') {
+        return await handleRevokeSession(request, env, decodeURIComponent(url.pathname.slice('/api/auth/sessions/'.length)));
       }
 
       if (url.pathname.startsWith('/api/') && url.pathname !== '/api/auth/login') {

@@ -125,6 +125,23 @@ async function loadCalendrierPage() {
   document.getElementById('table-other-upcoming').innerHTML = renderUpcomingTable(otherUpcoming.filter((r) => r.entry));
   document.getElementById('table-tech-latest').innerHTML = renderLatestTable(techLatest);
   document.getElementById('table-other-latest').innerHTML = renderLatestTable(otherLatest.filter((r) => r.entry));
+
+  initTableScrollShadows();
+}
+
+/* Ombre sur le bord droit tant qu'il reste des colonnes non visibles
+   (le tableau défile horizontalement mais rien ne le signalait avant). */
+function initTableScrollShadows() {
+  document.querySelectorAll('.table-wrap').forEach((wrap) => {
+    const update = () => {
+      const scrollable = wrap.scrollWidth > wrap.clientWidth + 2;
+      const atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 2;
+      wrap.classList.toggle('scrolled-end', !scrollable || atEnd);
+    };
+    update();
+    wrap.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+  });
 }
 
 function initTabs() {

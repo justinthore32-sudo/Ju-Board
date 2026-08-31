@@ -7,19 +7,33 @@
 const CARD_SELECTOR = '.news-card, .priority-news, .result-item, .sector-card';
 const READ_KEY = 'ju-board-read-articles';
 
-/* ---------- LECTURE (état persistant) ---------- */
-function getReadSet() {
+/* ---------- LECTURE (état persistant + historique consultable) ---------- */
+function getReadData() {
   try {
-    return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]'));
+    const raw = JSON.parse(localStorage.getItem(READ_KEY) || '{}');
+    if (Array.isArray(raw)) {
+      /* migration depuis l'ancien format (tableau d'IDs sans titre) */
+      const migrated = {};
+      raw.forEach((id) => { migrated[id] = { title: id, link: '', readAt: Date.now() }; });
+      return migrated;
+    }
+    return raw;
   } catch (err) {
-    return new Set();
+    return {};
   }
 }
 
-function markAsRead(id) {
-  const set = getReadSet();
-  set.add(id);
-  localStorage.setItem(READ_KEY, JSON.stringify([...set]));
+function getReadSet() {
+  return new Set(Object.keys(getReadData()));
+}
+
+function markAsRead(id, card) {
+  if (!id) return;
+  const data = getReadData();
+  const title = card?.querySelector('.news-title, .result-title')?.textContent?.trim() || id;
+  const link = card?.querySelector('a[href]')?.getAttribute('href') || '';
+  data[id] = { title, link, readAt: Date.now() };
+  localStorage.setItem(READ_KEY, JSON.stringify(data));
 }
 
 /* L'URL interne (article.html?...) embarque un label "Il y a 3h" qui change
@@ -78,10 +92,19 @@ function toggleFavorite(card) {
 }
 
 /* ---------- PULL-TO-REFRESH ---------- */
+function createPullIndicator() {
+  const el = document.createElement('div');
+  el.className = 'pull-indicator';
+  el.textContent = '↓';
+  document.body.appendChild(el);
+  return el;
+}
+
 function initPullToRefresh() {
   let startY = null;
   let pulling = false;
   const threshold = 70;
+  const indicator = createPullIndicator();
 
   document.addEventListener('touchstart', (e) => {
     if (window.scrollY <= 0) {
@@ -93,14 +116,18 @@ function initPullToRefresh() {
   document.addEventListener('touchmove', (e) => {
     if (!pulling || startY === null) return;
     const delta = e.touches[0].clientY - startY;
-    if (delta > threshold) {
-      document.body.style.setProperty('--pull-hint', '1');
+    if (delta > 4) {
+      const progress = Math.min(1, delta / threshold);
+      indicator.style.opacity = progress;
+      indicator.style.transform = `translateX(-50%) rotate(${progress * 180}deg)`;
     }
   }, { passive: true });
 
   document.addEventListener('touchend', (e) => {
     if (!pulling || startY === null) return;
     const delta = (e.changedTouches[0]?.clientY || startY) - startY;
+    indicator.style.opacity = '0';
+    indicator.style.transform = 'translateX(-50%) rotate(0deg)';
     if (delta > threshold && window.scrollY <= 0) {
       if (typeof window.juBoardRefresh === 'function') {
         window.juBoardRefresh();
@@ -246,7 +273,7 @@ function initSwipeToRead() {
     card.style.transform = '';
     if (dx < -60) {
       card.classList.add('card-read');
-      markAsRead(cardId(card));
+      markAsRead(cardId(card), card);
     }
     card = null;
     startX = null;
