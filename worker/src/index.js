@@ -396,10 +396,15 @@ const ALLOWED_SORT = new Set(['publishedAt', 'popularity', 'relevancy']);
 
 /* Médias reconnus uniquement — évite les blogs obscurs remontés par
    défaut par la recherche NewsAPI "everything". */
+/* Vérifié par test direct (18/09) : le crawler NewsAPI /v2/everything
+   n'indexe tout simplement PAS lemonde.fr, lesechos.fr, francetvinfo.fr,
+   lepoint.fr, capital.fr ni la-croix.com — le filtre `domains` y renvoie
+   0 résultat quelle que soit la requête. Ces 6 domaines "de confiance"
+   ne contribuaient donc RIEN en pratique, silencieusement. Liste réduite
+   aux domaines qui renvoient effectivement des résultats. */
 const TRUSTED_DOMAINS = [
-  'lemonde.fr', 'lesechos.fr', 'lefigaro.fr', 'liberation.fr',
-  'francetvinfo.fr', 'bfmtv.com', 'ouest-france.fr', 'lepoint.fr',
-  'capital.fr', 'courrierinternational.com', 'la-croix.com', 'challenges.fr'
+  'lefigaro.fr', 'liberation.fr', 'bfmtv.com', 'ouest-france.fr',
+  'courrierinternational.com', 'challenges.fr'
 ].join(',');
 
 async function handleNews(request, env, ctx) {
@@ -410,10 +415,15 @@ async function handleNews(request, env, ctx) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
   const from = url.searchParams.get('from');
   const domains = url.searchParams.get('domains') || TRUSTED_DOMAINS;
+  const sources = url.searchParams.get('sources');
   const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get('pageSize') || '20', 10) || 20));
 
   let newsUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&language=fr&sortBy=${sortBy}&pageSize=${pageSize}&page=${page}&apiKey=${env.NEWSAPI_KEY}`;
-  if (domains) newsUrl += `&domains=${encodeURIComponent(domains)}`;
+  if (sources) {
+    newsUrl += `&sources=${encodeURIComponent(sources)}`;
+  } else if (domains) {
+    newsUrl += `&domains=${encodeURIComponent(domains)}`;
+  }
   if (from) newsUrl += `&from=${encodeURIComponent(from)}`;
 
   return cachedJsonFetch(
@@ -426,8 +436,14 @@ async function handleNews(request, env, ctx) {
   );
 }
 
-/* Reuters et Les Échos retirés : bloquent systématiquement les requêtes
-   serveur (403/530, confirmé par test direct) — hors de notre contrôle. */
+/* Reuters et Les Échos : leurs flux RSS bloquent systématiquement les
+   requêtes serveur (403). Contournement testé et abandonné : Google
+   Actualités filtré sur leur site n'est PAS bloqué depuis un poste
+   normal, mais Google bloque spécifiquement les IP Cloudflare Workers
+   (503 confirmé par test direct, même avec un User-Agent de navigateur)
+   — donc pas de solution serveur gratuite pour Les Échos, ni via leur
+   RSS ni via NewsAPI (voir TRUSTED_DOMAINS ci-dessous : lesechos.fr n'y
+   est simplement pas indexé). */
 const RSS_FEEDS = {
   lemonde: { url: 'https://www.lemonde.fr/rss/une.xml', name: 'Le Monde' },
   yahoo: { url: 'https://finance.yahoo.com/news/rssindex', name: 'Yahoo Finance' },

@@ -49,23 +49,33 @@ function renderNewsBlock(article) {
     </div>`;
 }
 
-async function loadNewsBlock(containerId, query, { count = 3, rssFeed, domains } = {}) {
+async function loadNewsBlock(containerId, query, { count = 3, rssFeed, domains, rankByImpact = false } = {}) {
   const container = document.getElementById(containerId);
   if (!container || typeof fetchNews !== 'function') return;
 
   let newsFailed = false;
   try {
     const [newsData, rssData] = await Promise.all([
-      fetchNews(query, { sortBy: 'publishedAt', domains }).catch(() => { newsFailed = true; return { status: 'error', articles: [] }; }),
+      fetchNews(query, { sortBy: 'publishedAt', domains, pageSize: rankByImpact ? 30 : undefined }).catch(() => { newsFailed = true; return { status: 'error', articles: [] }; }),
       rssFeed && typeof fetchRss === 'function' ? fetchRss(rssFeed).catch(() => ({ status: 'error', articles: [] })) : Promise.resolve({ status: 'error', articles: [] })
     ]);
 
     const newsArticles = (newsData.articles || []).filter((a) => a.title && a.title !== '[Removed]');
     const rssArticles = (rssData.articles || []).filter((a) => a.title);
 
-    const merged = [...rssArticles, ...newsArticles]
-      .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-      .slice(0, count);
+    let merged = [...rssArticles, ...newsArticles].sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+    /* Priorité Absolue tire maintenant sur des domaines plus larges (dont
+       BFMTV, généraliste) pour avoir assez de volume — sans ce reclassement,
+       un article de foot mentionnant "acquisition" au détour d'un transfert
+       remonterait au même niveau qu'une vraie news de marché. On repasse le
+       lot par le même détecteur de mots-clés que le badge d'impact. */
+    if (rankByImpact && typeof getImpactLevel === 'function') {
+      const rank = (a) => { const lvl = getImpactLevel(a); return lvl === 'fort' ? 2 : lvl === 'moyen' ? 1 : 0; };
+      merged = merged.slice().sort((a, b) => rank(b) - rank(a));
+    }
+
+    merged = merged.slice(0, count);
 
     if (merged.length === 0) {
       container.innerHTML = newsFailed
@@ -130,10 +140,17 @@ async function loadSectors() {
    ("Aussi dans l'actu") : c'était deux appels NewsAPI distincts pour un
    total de 8 cartes sur l'accueil, en plus de Priorité Absolue et des
    10 secteurs — beaucoup trop dense pour un coup d'oeil rapide. */
+/* L'override domains: 'lesechos.fr,capital.fr,challenges.fr' tournait en
+   fait sur challenges.fr SEUL depuis le début — NewsAPI n'indexe pas
+   lesechos.fr ni capital.fr (0 résultat vérifié par test direct), et ça
+   ne se voyait pas puisque challenges.fr suffisait à remplir le bloc.
+   On repasse sur les domaines de confiance par défaut (TRUSTED_DOMAINS,
+   nettoyés côté Worker) pour retrouver du volume et de la diversité
+   réelle, en laissant le mot-clé filtrer ce qui est pertinent. */
 function refreshHome() {
   loadNewsBlock('priority-list', 'marchés OR bourse OR taux OR inflation OR résultats OR Fed OR BCE OR fusion OR acquisition', {
     count: 4,
-    domains: 'lesechos.fr,capital.fr,challenges.fr'
+    rankByImpact: true
   });
   loadNewsBlock('also-list', 'découverte OR avancée scientifique OR international OR politique OR économie OR monde', { count: 4 });
   loadSectors();
