@@ -116,7 +116,8 @@ function impactBadgeHtml(article) {
    vraie analyse de probabilité/impact via Anthropic. */
 const GEO_RISK_KEYWORDS_ELEVE = [
   'guerre', 'invasion', 'attaque militaire', 'coup d\'état', 'sanctions',
-  'embargo', 'frappe aérienne', 'mobilisation', 'état d\'urgence', 'nucléaire'
+  'embargo', 'frappe aérienne', 'mobilisation', 'état d\'urgence', 'nucléaire',
+  'bombardement', 'offensive militaire', 'otages', 'conflit armé', 'escalade militaire'
 ];
 const GEO_RISK_KEYWORDS_MODERE = [
   'tension', 'négociation', 'élection', 'manifestation', 'cessez-le-feu',
