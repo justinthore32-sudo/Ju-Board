@@ -765,6 +765,20 @@ body.login-page {
   color: var(--text3);
 }
 
+.price-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.price-alert.up { background: var(--up-bg); color: var(--green); border: 1px solid var(--up-border); }
+.price-alert.down { background: var(--down-bg); color: var(--red); border: 1px solid var(--down-border); }
+
 .btn-remove-company {
   font-family: var(--font-sans);
   font-size: 11px;

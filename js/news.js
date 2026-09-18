@@ -70,6 +70,16 @@ function impactTag(article) {
   return typeof impactBadgeHtml === 'function' ? impactBadgeHtml(article) : '';
 }
 
+/* Sur le secteur Géopolitique, le score de risque géo remplace le tag
+   d'impact marché générique — plus pertinent pour ce type de news. */
+function riskOrImpactTag(article, domainKey) {
+  if (domainKey === 'geopolitique' && typeof geoRiskBadgeHtml === 'function') {
+    const badge = geoRiskBadgeHtml(article);
+    if (badge) return badge;
+  }
+  return impactTag(article);
+}
+
 /* ---------- MODE NAVIGATION (par secteur) ---------- */
 function buildBrowseQuery() {
   const domain = document.getElementById('domain-select').value;
@@ -88,7 +98,7 @@ function renderArticle(article, domainKey) {
         <span class="sector-badge">${badge}</span>
         <span class="news-source">${article.source?.name || 'Source inconnue'}</span>
         <span class="news-time">${timeAgo(article.publishedAt)}</span>
-        ${impactTag(article)}
+        ${riskOrImpactTag(article, domainKey)}
       </div>
       <h3 class="news-title">${glossify(article.title || 'Sans titre')}</h3>
       <p class="news-summary">${glossify(summary)}</p>

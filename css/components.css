@@ -361,6 +361,56 @@
   border-radius: 99px;
 }
 
+/* ---------- BANDEAU DE MARCHÉ ---------- */
+.market-ticker-wrap {
+  margin: 14px -16px 0;
+  padding: 0 16px;
+  overflow-x: auto;
+}
+
+.market-ticker {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.market-item {
+  flex-shrink: 0;
+  min-width: 88px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.market-item-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.market-item-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.market-item-change {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.market-item-change.up { color: var(--green); }
+.market-item-change.down { color: var(--red); }
+.market-item-change.neutral { color: var(--text3); }
+
 /* ---------- BADGE IMPACT MARCHÉ ---------- */
 .impact-badge {
   font-family: var(--font-sans);

@@ -9,6 +9,50 @@
    attendant un vrai tri par importance/impact via Claude.
    ============================================ */
 
+/* Indices/devises/matières premières via des ETF proxies (Finnhub /quote,
+   même clé que la watchlist — pas de nouvelle API nécessaire). Finnhub
+   gratuit ne donne pas les vrais indices (^GSPC etc. renvoient vide),
+   mais les ETF qui les répliquent sont des actions normales, couvertes
+   sans restriction. */
+const MARKET_TICKERS = [
+  { symbol: 'SPY', label: 'S&P 500' },
+  { symbol: 'QQQ', label: 'Nasdaq' },
+  { symbol: 'EWQ', label: 'CAC 40*' },
+  { symbol: 'EWG', label: 'DAX*' },
+  { symbol: 'GLD', label: 'Or' },
+  { symbol: 'USO', label: 'Pétrole' },
+  { symbol: 'UUP', label: 'Dollar' },
+  { symbol: 'VIXY', label: 'Volatilité' }
+];
+
+async function loadMarketTicker() {
+  const el = document.getElementById('market-ticker');
+  if (!el || typeof fetchStockQuotes !== 'function') return;
+
+  try {
+    const data = await fetchStockQuotes(MARKET_TICKERS.map((t) => t.symbol));
+    const bySymbol = {};
+    (data.results || []).forEach((r) => { bySymbol[r.symbol] = r; });
+
+    el.innerHTML = MARKET_TICKERS.map((t) => {
+      const q = bySymbol[t.symbol];
+      if (!q || q.error) {
+        return `<div class="market-item"><span class="market-item-label">${t.label}</span><span class="market-item-value">—</span></div>`;
+      }
+      const dir = q.change > 0 ? 'up' : q.change < 0 ? 'down' : 'neutral';
+      const sign = q.change > 0 ? '+' : '';
+      return `
+        <div class="market-item">
+          <span class="market-item-label">${t.label}</span>
+          <span class="market-item-value">${q.price.toFixed(2)}</span>
+          <span class="market-item-change ${dir}">${sign}${q.changePercent.toFixed(2)}%</span>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    el.innerHTML = '<p style="color: var(--text3); font-size: 12px;">Marchés indisponibles pour le moment.</p>';
+  }
+}
+
 const SECTORS = [
   { icon: '💰', name: 'Économie', query: 'économie OR marchés financiers OR banque centrale', param: 'economie' },
   { icon: '🌍', name: 'Géopolitique', query: 'géopolitique OR diplomatie OR conflit international', param: 'geopolitique' },
@@ -148,6 +192,7 @@ async function loadSectors() {
    nettoyés côté Worker) pour retrouver du volume et de la diversité
    réelle, en laissant le mot-clé filtrer ce qui est pertinent. */
 function refreshHome() {
+  loadMarketTicker();
   loadNewsBlock('priority-list', 'marchés OR bourse OR taux OR inflation OR résultats OR Fed OR BCE OR fusion OR acquisition', {
     count: 4,
     rankByImpact: true

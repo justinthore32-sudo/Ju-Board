@@ -600,6 +600,48 @@ async function handleUpdateWatchlist(request, env) {
   return jsonResponse({ watchlist: cleaned }, env);
 }
 
+/* ---------- JOURNAL DE CONVICTIONS ----------
+   Notes personnelles horodatées, liées ou non à une entreprise de la
+   watchlist ("je pense que X va se passer parce que Y") — pour se
+   confronter plus tard à ses propres analyses. Stockage simple : un
+   tableau JSON par compte. */
+async function handleGetJournal(request, env) {
+  const session = await getSession(request, env);
+  if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+  const raw = await env.USERS.get(`journal:${session.username}`);
+  const entries = raw ? JSON.parse(raw) : [];
+  return jsonResponse({ entries }, env);
+}
+
+async function handleAddJournalEntry(request, env) {
+  const session = await getSession(request, env);
+  if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+  const { text, symbol } = await request.json();
+  if (!text || !text.trim()) return jsonResponse({ error: 'Note vide' }, env, 400);
+
+  const raw = await env.USERS.get(`journal:${session.username}`);
+  const entries = raw ? JSON.parse(raw) : [];
+  const entry = {
+    id: randomHex(8),
+    text: text.trim().slice(0, 1000),
+    symbol: symbol ? String(symbol).toUpperCase().trim().slice(0, 12) : null,
+    createdAt: Date.now()
+  };
+  entries.unshift(entry);
+  await env.USERS.put(`journal:${session.username}`, JSON.stringify(entries.slice(0, 200)));
+  return jsonResponse({ entry }, env);
+}
+
+async function handleDeleteJournalEntry(request, env, id) {
+  const session = await getSession(request, env);
+  if (!session) return jsonResponse({ error: 'Non authentifié' }, env, 401);
+  const raw = await env.USERS.get(`journal:${session.username}`);
+  const entries = raw ? JSON.parse(raw) : [];
+  const filtered = entries.filter((e) => e.id !== id);
+  await env.USERS.put(`journal:${session.username}`, JSON.stringify(filtered));
+  return jsonResponse({ ok: true }, env);
+}
+
 /* Finnhub free-tier renvoie du 429 des qu'on l'interroge en parallele
    (Promise.all) pour plusieurs symboles a la fois - il faut espacer les
    appels au lieu de les envoyer tous en meme temps. */
@@ -760,6 +802,15 @@ export default {
       }
       if (url.pathname === '/api/stock-metrics' && request.method === 'GET') {
         return await handleStockMetrics(request, env, ctx);
+      }
+      if (url.pathname === '/api/journal' && request.method === 'GET') {
+        return await handleGetJournal(request, env);
+      }
+      if (url.pathname === '/api/journal' && request.method === 'POST') {
+        return await handleAddJournalEntry(request, env);
+      }
+      if (url.pathname.startsWith('/api/journal/') && request.method === 'DELETE') {
+        return await handleDeleteJournalEntry(request, env, decodeURIComponent(url.pathname.slice('/api/journal/'.length)));
       }
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {

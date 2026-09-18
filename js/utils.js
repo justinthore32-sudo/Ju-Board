@@ -110,6 +110,33 @@ function impactBadgeHtml(article) {
   return '';
 }
 
+/* ---------- SCORE DE RISQUE GÉOPOLITIQUE (mots-clés, sans IA) ----------
+   Même principe que le tag d'impact marché, mais pour évaluer la gravité
+   d'une news géopolitique — un premier niveau de tri en attendant une
+   vraie analyse de probabilité/impact via Anthropic. */
+const GEO_RISK_KEYWORDS_ELEVE = [
+  'guerre', 'invasion', 'attaque militaire', 'coup d\'état', 'sanctions',
+  'embargo', 'frappe aérienne', 'mobilisation', 'état d\'urgence', 'nucléaire'
+];
+const GEO_RISK_KEYWORDS_MODERE = [
+  'tension', 'négociation', 'élection', 'manifestation', 'cessez-le-feu',
+  'accord de paix', 'sommet', 'diplomatie', 'référendum', 'crise politique'
+];
+
+function getGeoRiskLevel(article) {
+  const text = `${article?.title || ''} ${article?.description || ''}`.toLowerCase();
+  if (GEO_RISK_KEYWORDS_ELEVE.some((k) => text.includes(k))) return 'eleve';
+  if (GEO_RISK_KEYWORDS_MODERE.some((k) => text.includes(k))) return 'modere';
+  return null;
+}
+
+function geoRiskBadgeHtml(article) {
+  const level = getGeoRiskLevel(article);
+  if (level === 'eleve') return '<span class="impact-badge impact-fort">⚠️ Risque géo élevé</span>';
+  if (level === 'modere') return '<span class="impact-badge impact-moyen">⚠️ Risque géo modéré</span>';
+  return '';
+}
+
 /* ---------- GLOSSAIRE CLIQUABLE ----------
    Même liste de termes que search.js (dupliquée volontairement : ici on
    matche par regex dans le texte des news, là-bas par recherche tapée —

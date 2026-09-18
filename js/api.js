@@ -180,6 +180,29 @@ async function updateWatchlist(watchlist) {
   return resp.json();
 }
 
+/* ---------- JOURNAL DE CONVICTIONS (via proxy) ---------- */
+async function fetchJournal() {
+  const resp = await apiFetch('/api/journal');
+  if (!resp.ok) throw new Error(`Erreur journal (${resp.status})`);
+  return resp.json();
+}
+
+async function addJournalEntry(text, symbol) {
+  const resp = await apiFetch('/api/journal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, symbol })
+  });
+  if (!resp.ok) throw new Error(`Erreur ajout note (${resp.status})`);
+  return resp.json();
+}
+
+async function deleteJournalEntry(id) {
+  const resp = await apiFetch(`/api/journal/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  if (!resp.ok) throw new Error(`Erreur suppression note (${resp.status})`);
+  return resp.json();
+}
+
 /* ---------- COURS & RATIOS (Finnhub, via proxy) ---------- */
 async function fetchStockQuotes(symbols) {
   const resp = await apiFetch(`/api/stock-quote?symbols=${encodeURIComponent(symbols.join(','))}`);
