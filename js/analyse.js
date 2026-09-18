@@ -72,7 +72,7 @@ function renderCompanyCard(entry) {
     <p style="font-size: 12px; color: var(--text3);">Ratios financiers indisponibles pour ce titre (couverture Finnhub gratuite limitée aux bourses américaines).</p>`;
 
   return `
-    <article class="card company-card" data-cat="${entry.category}">
+    <article class="card company-card" data-cat="${entry.category}" id="company-${entry.symbol}">
       <div class="company-head">
         <div class="company-name-row">
           <span class="company-name">${entry.name}</span>
@@ -126,6 +126,7 @@ async function loadWatchlistPage() {
 
   if (currentWatchlist.length === 0) {
     renderCompanyList();
+    scrollToHashCompany();
     return;
   }
 
@@ -144,6 +145,29 @@ async function loadWatchlistPage() {
   }
 
   renderCompanyList();
+  scrollToHashCompany();
+}
+
+/* Lien profond depuis Calendrier/la recherche rapide du header
+   (analyse.html#company-AAPL) : si la catégorie active masque la carte,
+   on repasse sur "Tous" avant de scroller pour ne pas rater le clic. */
+function scrollToHashCompany() {
+  if (!window.location.hash) return;
+  const symbol = window.location.hash.slice(1).replace(/^company-/, '');
+  window.setTimeout(() => {
+    let target = document.getElementById(`company-${symbol}`);
+    if (!target && activeCategory !== 'all') {
+      activeCategory = 'all';
+      document.querySelectorAll('.category-tab').forEach((t) => t.classList.toggle('active', t.dataset.cat === 'all'));
+      renderCompanyList();
+      target = document.getElementById(`company-${symbol}`);
+    }
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.style.transition = 'box-shadow 0.3s';
+    target.style.boxShadow = '0 0 0 3px var(--accent)';
+    window.setTimeout(() => { target.style.boxShadow = ''; }, 1800);
+  }, 150);
 }
 
 async function removeFromWatchlist(symbol) {

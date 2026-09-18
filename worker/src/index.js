@@ -176,13 +176,23 @@ async function handleLogout(request, env) {
   return jsonResponse({ ok: true }, env);
 }
 
+/* Avec un jeton valide 30 jours et un usage irrégulier, l'écart entre
+   la connexion et la dernière activité peut se compter en jours — ce
+   n'est pas une "durée de session" au sens classique (le mot était
+   trompeur), mais depuis quand ce jeton est actif. Formaté en jours au
+   besoin plutôt qu'en centaines d'heures illisibles. */
 function formatDuration(ms) {
   if (!ms || ms < 0) return null;
   const mins = Math.round(ms / 60000);
   if (mins < 60) return `${mins} min`;
   const hours = Math.floor(mins / 60);
-  const rem = mins % 60;
-  return `${hours}h${rem ? ` ${rem}min` : ''}`;
+  if (hours < 24) {
+    const rem = mins % 60;
+    return `${hours}h${rem ? ` ${rem}min` : ''}`;
+  }
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return `${days}j${remHours ? ` ${remHours}h` : ''}`;
 }
 
 async function handleListUsers(request, env) {
@@ -203,7 +213,7 @@ async function handleListUsers(request, env) {
         createdAt: u.createdAt || null,
         lastLoginAt: u.lastLoginAt || null,
         lastSeenAt: u.lastSeenAt || null,
-        lastSessionDuration: formatDuration(sessionDurationMs)
+        connectedSince: formatDuration(sessionDurationMs)
       };
     })
   );

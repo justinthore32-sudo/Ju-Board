@@ -5,14 +5,30 @@
    groupés : News / Entreprises / Concepts.
    ============================================ */
 
-const SEARCH_COMPANIES = [
-  { name: 'Apple', slug: 'apple' },
-  { name: 'Nvidia', slug: 'nvidia' },
-  { name: 'JPMorgan Chase', slug: 'jpmorgan-chase' },
-  { name: 'LVMH', slug: 'lvmh' },
-  { name: 'Saudi Aramco', slug: 'saudi-aramco' },
-  { name: 'ExxonMobil', slug: 'exxonmobil' }
+/* Repli si la watchlist est indisponible ; sinon remplacée au chargement
+   par loadSearchCompanies() avec les vraies entreprises suivies (voir
+   plus bas), pour que la recherche rapide ne rate plus ce que
+   l'utilisateur a ajouté dans Analyse. */
+let SEARCH_COMPANIES = [
+  { name: 'Apple', slug: 'AAPL' },
+  { name: 'Nvidia', slug: 'NVDA' },
+  { name: 'JPMorgan Chase', slug: 'JPM' },
+  { name: 'LVMH', slug: 'MC.PA' },
+  { name: 'Saudi Aramco', slug: '2222.SR' },
+  { name: 'ExxonMobil', slug: 'XOM' }
 ];
+
+async function loadSearchCompanies() {
+  if (typeof fetchWatchlist !== 'function') return;
+  try {
+    const data = await fetchWatchlist();
+    if (data.watchlist && data.watchlist.length > 0) {
+      SEARCH_COMPANIES = data.watchlist.map((c) => ({ name: c.name, slug: c.symbol }));
+    }
+  } catch (err) {
+    /* watchlist indisponible, on garde le repli */
+  }
+}
 
 const SEARCH_GLOSSARY = [
   { term: 'Quantitative tightening', definition: "Politique monétaire par laquelle une banque centrale réduit la taille de son bilan, à l'inverse du quantitative easing." },
@@ -120,4 +136,7 @@ function initSearchBar() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', initSearchBar);
+document.addEventListener('DOMContentLoaded', () => {
+  initSearchBar();
+  loadSearchCompanies();
+});

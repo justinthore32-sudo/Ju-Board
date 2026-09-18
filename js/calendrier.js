@@ -4,31 +4,43 @@
    à venir / précédent, géants tech toujours affichés.
    ============================================ */
 
+/* Les géants tech restent toujours affichés (exigence d'origine),
+   quelle que soit la watchlist de l'utilisateur. Le reste du tableau
+   vient maintenant de la vraie watchlist (/api/watchlist) au lieu d'une
+   liste figée déconnectée de ce que l'utilisateur suit réellement. */
 const TECH_GIANT_SYMBOLS = new Set(['AAPL', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'INTC', 'AMD']);
 
-const CAL_COMPANIES = [
-  { name: 'Apple', symbol: 'AAPL', slug: 'apple' },
-  { name: 'Nvidia', symbol: 'NVDA', slug: 'nvidia' },
+const TECH_GIANT_COMPANIES = [
+  { name: 'Apple', symbol: 'AAPL' },
+  { name: 'Nvidia', symbol: 'NVDA' },
   { name: 'Microsoft', symbol: 'MSFT' },
   { name: 'Alphabet (Google)', symbol: 'GOOGL' },
   { name: 'Amazon', symbol: 'AMZN' },
   { name: 'Meta', symbol: 'META' },
   { name: 'Tesla', symbol: 'TSLA' },
   { name: 'Intel', symbol: 'INTC' },
-  { name: 'AMD', symbol: 'AMD' },
-  { name: 'JPMorgan Chase', symbol: 'JPM', slug: 'jpmorgan-chase' },
-  { name: 'Goldman Sachs', symbol: 'GS' },
-  { name: 'BlackRock', symbol: 'BLK' },
-  { name: 'Visa', symbol: 'V' },
-  { name: 'Mastercard', symbol: 'MA' },
-  { name: 'UnitedHealth', symbol: 'UNH' },
-  { name: 'Pfizer', symbol: 'PFE' },
-  { name: 'Johnson & Johnson', symbol: 'JNJ' },
-  { name: 'Moderna', symbol: 'MRNA' },
-  { name: 'LVMH', symbol: 'MC.PA', slug: 'lvmh' },
-  { name: 'ExxonMobil', symbol: 'XOM', slug: 'exxonmobil' },
-  { name: 'Saudi Aramco', symbol: '2222.SR', slug: 'saudi-aramco' }
+  { name: 'AMD', symbol: 'AMD' }
 ];
+
+async function buildCalCompanies() {
+  const companies = TECH_GIANT_COMPANIES.map((c) => ({ ...c, slug: c.symbol }));
+  const seen = new Set(TECH_GIANT_SYMBOLS);
+
+  if (typeof fetchWatchlist === 'function') {
+    try {
+      const data = await fetchWatchlist();
+      (data.watchlist || []).forEach((entry) => {
+        if (seen.has(entry.symbol)) return;
+        seen.add(entry.symbol);
+        companies.push({ name: entry.name, symbol: entry.symbol, slug: entry.symbol });
+      });
+    } catch (err) {
+      /* watchlist indisponible — les géants tech restent affichés seuls */
+    }
+  }
+
+  return companies;
+}
 
 function initials(name) {
   return name.split(/[\s&(]/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -97,7 +109,8 @@ function renderLatestTable(rows) {
 }
 
 async function loadCalendrierPage() {
-  const symbols = CAL_COMPANIES.map((c) => c.symbol);
+  const calCompanies = await buildCalCompanies();
+  const symbols = calCompanies.map((c) => c.symbol);
   const data = await fetchEarnings(symbols);
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -106,7 +119,7 @@ async function loadCalendrierPage() {
   const techLatest = [];
   const otherLatest = [];
 
-  CAL_COMPANIES.forEach((company) => {
+  calCompanies.forEach((company) => {
     const result = data.results?.find((r) => r.symbol === company.symbol);
     const entries = (result?.entries || []).slice().sort((a, b) => a.date.localeCompare(b.date));
     const next = entries.find((e) => e.date >= todayStr) || null;

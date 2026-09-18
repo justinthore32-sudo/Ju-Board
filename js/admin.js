@@ -29,7 +29,7 @@ function renderUsers(users) {
       <div style="font-size:12px; color:var(--text3); display:flex; flex-direction:column; gap:2px;">
         <span>Dernière connexion : ${formatDate(u.lastLoginAt)}</span>
         <span>Dernière activité : ${formatDate(u.lastSeenAt)}</span>
-        <span>Durée de la dernière session : ${u.lastSessionDuration || '—'}</span>
+        <span>Connecté depuis : ${u.connectedSince || '—'}</span>
       </div>
 
       ${!u.isAdmin ? `
