@@ -135,6 +135,20 @@ async function callClaude(messages, { system, maxTokens = 1000 } = {}) {
   return resp.json();
 }
 
+async function analyzeCompany({ symbol, name, quote, metric, news }) {
+  const resp = await apiFetch('/api/analyze-company', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbol, name, quote, metric, news })
+  });
+  const data = await resp.json();
+  if (!resp.ok) {
+    const err = new Error(data.error === 'not_configured' ? 'not_configured' : (data.error || `Erreur analyse (${resp.status})`));
+    throw err;
+  }
+  return data;
+}
+
 /* ---------- NEWSAPI (via proxy) ---------- */
 async function fetchNews(query, { sortBy = 'publishedAt', page = 1, from, domains, pageSize } = {}) {
   const params = new URLSearchParams({ q: query, sortBy, page });

@@ -6,7 +6,7 @@
    ============================================ */
 
 const ANTHROPIC_VERSION = '2023-06-01';
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
+const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
 function corsHeaders(env) {
   return {
@@ -334,6 +334,75 @@ async function handleClaude(request, env) {
     status: resp.status,
     headers: { ...corsHeaders(env), 'content-type': 'application/json' }
   });
+}
+
+/* ---------- ANALYSE IA D'UNE ENTREPRISE (watchlist) ----------
+   Reprend les données déjà récupérées côté client (cours, ratios, news)
+   plutôt que de les refetcher — un seul appel Anthropic par entreprise.
+   Mise en cache 6h par entreprise pour qu'un aller-retour sur la page ne
+   refacture pas l'analyse à chaque affichage. */
+async function handleAnalyzeCompany(request, env, ctx) {
+  if (!env.ANTHROPIC_API_KEY) {
+    return jsonResponse({ error: 'not_configured' }, env, 501);
+  }
+
+  const { symbol, name, quote, metric, news } = await request.json();
+  if (!symbol || !name) return jsonResponse({ error: 'Paramètres manquants' }, env, 400);
+
+  const bucket = Math.floor(Date.now() / (6 * 60 * 60 * 1000));
+  const cache = caches.default;
+  const cacheKey = new Request(`https://cache.ju-board.internal/analyze-company/${encodeURIComponent(symbol)}/${bucket}`, { method: 'GET' });
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, { status: 200, headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'HIT' } });
+  }
+
+  const priceInfo = quote && !quote.error
+    ? `Cours actuel : ${quote.price} $ (${quote.changePercent > 0 ? '+' : ''}${quote.changePercent}% aujourd'hui).`
+    : `Cours indisponible (couverture Finnhub gratuite limitée aux bourses américaines).`;
+  const ratiosInfo = metric && !metric.error
+    ? `PER ${metric.per}x, ROE ${metric.roe}%, marge nette ${metric.margeNette}%, dette/capitaux propres ${metric.detteCapitauxPropres}x.`
+    : `Ratios financiers indisponibles.`;
+  const newsInfo = Array.isArray(news) && news.length > 0
+    ? news.map((a) => `- ${a.title}`).join('\n')
+    : 'Aucune actualité récente liée trouvée.';
+
+  const systemPrompt = `Tu es un analyste financier qui aide un particulier à apprendre, pas un conseiller en investissement.
+Analyse ${name} (${symbol}) à partir STRICTEMENT des données fournies. Réponds en français, 100 à 150 mots, en 3 temps courts :
+1) Ce que ces chiffres et ces actus signifient concrètement.
+2) Ce qui est susceptible de se passer ensuite (anticipe activement, ne te contente pas de décrire le passé) — donne un horizon temporel et un degré de confiance qualitatif (probable / incertain / spéculatif).
+3) Un point de vigilance précis à surveiller.
+Reste factuel et nuancé. Ne donne jamais de conseil d'achat/vente explicite. Si les données sont insuffisantes, dis-le plutôt que d'inventer.`;
+
+  const userPrompt = `Données disponibles sur ${name} :\n${priceInfo}\n${ratiosInfo}\nActualités récentes liées :\n${newsInfo}`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': ANTHROPIC_VERSION,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: DEFAULT_MODEL,
+      max_tokens: 400,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  const data = await resp.json();
+  if (!resp.ok) {
+    return jsonResponse({ error: data?.error?.message || 'Erreur Anthropic' }, env, resp.status);
+  }
+
+  const text = data?.content?.[0]?.text || '';
+  const responseBody = JSON.stringify({ symbol, analysis: text, generatedAt: Date.now() });
+
+  ctx.waitUntil(cache.put(cacheKey, new Response(responseBody, { headers: { 'content-type': 'application/json', 'Cache-Control': 'max-age=21600' } })));
+
+  return new Response(responseBody, { status: 200, headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' } });
 }
 
 async function handleWeather(request, env) {
@@ -775,6 +844,9 @@ export default {
 
       if (url.pathname === '/api/claude' && request.method === 'POST') {
         return await handleClaude(request, env);
+      }
+      if (url.pathname === '/api/analyze-company' && request.method === 'POST') {
+        return await handleAnalyzeCompany(request, env, ctx);
       }
       if (url.pathname === '/api/news' && request.method === 'GET') {
         return await handleNews(request, env, ctx);

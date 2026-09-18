@@ -3,11 +3,10 @@
    Page Analyse : watchlist personnalisable avec
    cours et ratios réels (Finnhub, via le Worker).
 
-   L'analyse qualitative (cycle, scénarios, points de
-   vigilance) n'est PAS générée ici — elle demande un
-   vrai jugement et attend qu'Anthropic soit branché.
-   Cette page se limite volontairement aux chiffres
-   vérifiables.
+   L'analyse qualitative (bouton "Générer l'analyse")
+   est générée à la demande via /api/analyze-company
+   (Anthropic, côté Worker) — pas au chargement, pour
+   ne pas facturer une analyse à chaque visite.
    ============================================ */
 
 const CATEGORY_LABELS = {
@@ -24,6 +23,8 @@ let metricsBySymbol = {};
 let newsByCompany = {};
 let journalBySymbol = {};
 let activeCategory = 'all';
+let aiAnalysisBySymbol = {};
+let aiLoadingSymbols = new Set();
 
 /* Journal de convictions : notes personnelles horodatées, liées à une
    entreprise ("je pense que X va se passer parce que Y") — pour se
@@ -52,6 +53,35 @@ async function addNote(symbol, text) {
     if (typeof showToast === 'function') showToast('Note ajoutée');
   } catch (err) {
     if (typeof showToast === 'function') showToast('Erreur : impossible d\'ajouter la note');
+  }
+}
+
+async function generateAnalysis(symbol) {
+  if (aiLoadingSymbols.has(symbol)) return;
+  const entry = currentWatchlist.find((e) => e.symbol === symbol);
+  if (!entry) return;
+
+  aiLoadingSymbols.add(symbol);
+  renderCompanyList();
+
+  try {
+    const data = await analyzeCompany({
+      symbol,
+      name: entry.name,
+      quote: quotesBySymbol[symbol],
+      metric: metricsBySymbol[symbol],
+      news: newsByCompany[symbol]
+    });
+    aiAnalysisBySymbol[symbol] = data.analysis;
+  } catch (err) {
+    if (err.message === 'not_configured') {
+      if (typeof showToast === 'function') showToast('Clé Anthropic pas encore configurée côté Worker');
+    } else if (typeof showToast === 'function') {
+      showToast('Erreur : analyse indisponible pour le moment');
+    }
+  } finally {
+    aiLoadingSymbols.delete(symbol);
+    renderCompanyList();
   }
 }
 
@@ -145,8 +175,29 @@ function renderCompanyCard(entry) {
       ${relatedNews.map((a) => `<a href="${buildArticleUrl(a, '')}" style="font-size:12px; color:var(--accent); text-decoration:none; display:block; line-height:1.4;">→ ${a.title}</a>`).join('')}
     </div>` : '';
 
-  const notes = journalBySymbol[entry.symbol] || [];
   const esc = typeof escapeHtmlText === 'function' ? escapeHtmlText : (s) => s;
+  const aiText = aiAnalysisBySymbol[entry.symbol];
+  const aiLoading = aiLoadingSymbols.has(entry.symbol);
+  let aiBlock;
+  if (aiText) {
+    aiBlock = `
+      <div style="display:flex; flex-direction:column; gap:4px; padding-top: 10px; border-top: 1px solid var(--border);">
+        <span class="deep-block-title" style="margin:0;">🤖 Analyse</span>
+        <p style="font-size:12px; color:var(--text2); line-height:1.5; margin:0; white-space:pre-line;">${esc(aiText)}</p>
+      </div>`;
+  } else if (aiLoading) {
+    aiBlock = `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-top: 10px; border-top: 1px solid var(--border);">
+        <span style="font-size: 11px; color: var(--text3);">🤖 Analyse en cours…</span>
+      </div>`;
+  } else {
+    aiBlock = `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-top: 10px; border-top: 1px solid var(--border);">
+        <button class="btn-remove-company" data-action="generate-analysis" data-symbol="${entry.symbol}" style="color:var(--accent); border-color:var(--accent);">🤖 Générer l'analyse</button>
+      </div>`;
+  }
+
+  const notes = journalBySymbol[entry.symbol] || [];
   const journalBlock = `
     <div style="display:flex; flex-direction:column; gap:8px; padding-top: 10px; border-top: 1px solid var(--border);">
       <span class="deep-block-title" style="margin:0;">📝 Mon journal</span>
@@ -180,8 +231,9 @@ function renderCompanyCard(entry) {
 
       ${journalBlock}
 
-      <div style="display:flex; justify-content:space-between; align-items:center; padding-top: 10px; border-top: 1px solid var(--border);">
-        <span style="font-size: 11px; color: var(--text3);">🤖 Analyse qualitative disponible une fois Anthropic branché.</span>
+      ${aiBlock}
+
+      <div style="display:flex; justify-content:flex-end; padding-top: 8px;">
         <button class="btn-remove-company" data-action="remove" data-symbol="${entry.symbol}">Retirer</button>
       </div>
     </article>`;
@@ -224,6 +276,10 @@ function renderCompanyList() {
       const symbol = card ? card.id.replace('company-', '') : null;
       removeNote(btn.dataset.id, symbol);
     });
+  });
+
+  list.querySelectorAll('[data-action="generate-analysis"]').forEach((btn) => {
+    btn.addEventListener('click', () => generateAnalysis(btn.dataset.symbol));
   });
 }
 
