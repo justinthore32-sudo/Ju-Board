@@ -7,6 +7,7 @@
 
 const ANTHROPIC_VERSION = '2023-06-01';
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 function corsHeaders(env) {
   return {
@@ -311,9 +312,47 @@ async function handleDeleteUser(request, env, username) {
   return jsonResponse({ ok: true }, env);
 }
 
-async function handleClaude(request, env) {
-  const payload = await request.json();
+/* ---------- MOTEUR IA (Anthropic si dispo, sinon Gemini gratuit) ----------
+   Deux fournisseurs, un seul point d'entrée : si ANTHROPIC_API_KEY est
+   configurée on l'utilise (meilleure qualité, payant à l'usage), sinon on
+   retombe sur GEMINI_API_KEY (Google AI Studio, gratuit à vie sans carte
+   bancaire, quota journalier limité mais large sur Flash-Lite). Si aucune
+   des deux n'est configurée, on le signale clairement au lieu d'échouer
+   silencieusement. */
+async function callGemini(env, systemInstruction, inputText, maxTokens) {
+  const model = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  const resp = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+    method: 'POST',
+    headers: {
+      'x-goog-api-key': env.GEMINI_API_KEY,
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model,
+      input: inputText,
+      system_instruction: systemInstruction,
+      generation_config: { max_output_tokens: maxTokens }
+    })
+  });
 
+  const data = await resp.json();
+  if (!resp.ok) {
+    throw new Error(data?.error?.message || `Erreur Gemini (${resp.status})`);
+  }
+
+  const steps = Array.isArray(data.steps) ? data.steps : [];
+  const text = steps
+    .flatMap((s) => (Array.isArray(s.content) ? s.content : []))
+    .filter((c) => c.type === 'text')
+    .map((c) => c.text)
+    .join('\n')
+    .trim();
+
+  if (!text) throw new Error('Réponse Gemini vide');
+  return text;
+}
+
+async function callAnthropic(env, systemPrompt, messages, maxTokens) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -321,31 +360,50 @@ async function handleClaude(request, env) {
       'anthropic-version': ANTHROPIC_VERSION,
       'content-type': 'application/json'
     },
-    body: JSON.stringify({
-      model: payload.model || DEFAULT_MODEL,
-      max_tokens: payload.max_tokens || 1000,
-      system: payload.system,
-      messages: payload.messages
-    })
+    body: JSON.stringify({ model: DEFAULT_MODEL, max_tokens: maxTokens, system: systemPrompt, messages })
   });
-
   const data = await resp.json();
-  return new Response(JSON.stringify(data), {
-    status: resp.status,
-    headers: { ...corsHeaders(env), 'content-type': 'application/json' }
-  });
+  if (!resp.ok) throw new Error(data?.error?.message || `Erreur Anthropic (${resp.status})`);
+  return data?.content?.[0]?.text || '';
+}
+
+function flattenMessages(messages) {
+  return (messages || [])
+    .map((m) => `${m.role === 'assistant' ? 'Assistant' : 'Utilisateur'}: ${m.content}`)
+    .join('\n\n');
+}
+
+async function generateText(env, systemPrompt, { messages, input } = {}, maxTokens = 600) {
+  if (env.ANTHROPIC_API_KEY) {
+    const msgs = messages || [{ role: 'user', content: input }];
+    return await callAnthropic(env, systemPrompt, msgs, maxTokens);
+  }
+  if (env.GEMINI_API_KEY) {
+    const text = input || flattenMessages(messages);
+    return await callGemini(env, systemPrompt, text, maxTokens);
+  }
+  const err = new Error('not_configured');
+  err.notConfigured = true;
+  throw err;
+}
+
+async function handleClaude(request, env) {
+  const payload = await request.json();
+  try {
+    const text = await generateText(env, payload.system, { messages: payload.messages }, payload.max_tokens || 1000);
+    return jsonResponse({ content: [{ text }] }, env, 200);
+  } catch (err) {
+    if (err.notConfigured) return jsonResponse({ error: 'not_configured' }, env, 501);
+    return jsonResponse({ error: err.message }, env, 502);
+  }
 }
 
 /* ---------- ANALYSE IA D'UNE ENTREPRISE (watchlist) ----------
    Reprend les données déjà récupérées côté client (cours, ratios, news)
-   plutôt que de les refetcher — un seul appel Anthropic par entreprise.
+   plutôt que de les refetcher — un seul appel IA par entreprise.
    Mise en cache 6h par entreprise pour qu'un aller-retour sur la page ne
-   refacture pas l'analyse à chaque affichage. */
+   refacture (ou ne reconsomme le quota gratuit) pas à chaque affichage. */
 async function handleAnalyzeCompany(request, env, ctx) {
-  if (!env.ANTHROPIC_API_KEY) {
-    return jsonResponse({ error: 'not_configured' }, env, 501);
-  }
-
   const { symbol, name, quote, metric, news } = await request.json();
   if (!symbol || !name) return jsonResponse({ error: 'Paramètres manquants' }, env, 400);
 
@@ -377,29 +435,15 @@ Reste factuel et nuancé. Ne donne jamais de conseil d'achat/vente explicite. Si
 
   const userPrompt = `Données disponibles sur ${name} :\n${priceInfo}\n${ratiosInfo}\nActualités récentes liées :\n${newsInfo}`;
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': env.ANTHROPIC_API_KEY,
-      'anthropic-version': ANTHROPIC_VERSION,
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      max_tokens: 400,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
-  });
-
-  const data = await resp.json();
-  if (!resp.ok) {
-    return jsonResponse({ error: data?.error?.message || 'Erreur Anthropic' }, env, resp.status);
+  let text;
+  try {
+    text = await generateText(env, systemPrompt, { input: userPrompt }, 400);
+  } catch (err) {
+    if (err.notConfigured) return jsonResponse({ error: 'not_configured' }, env, 501);
+    return jsonResponse({ error: err.message }, env, 502);
   }
 
-  const text = data?.content?.[0]?.text || '';
   const responseBody = JSON.stringify({ symbol, analysis: text, generatedAt: Date.now() });
-
   ctx.waitUntil(cache.put(cacheKey, new Response(responseBody, { headers: { 'content-type': 'application/json', 'Cache-Control': 'max-age=21600' } })));
 
   return new Response(responseBody, { status: 200, headers: { ...corsHeaders(env), 'content-type': 'application/json', 'X-Cache': 'MISS' } });

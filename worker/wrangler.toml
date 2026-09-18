@@ -14,7 +14,9 @@ binding = "SESSIONS"
 id = "842141255fe745379b7b336f52bee300"
 
 # Secrets à définir avec `wrangler secret put NOM` (jamais dans ce fichier) :
-# - ANTHROPIC_API_KEY
+# - ANTHROPIC_API_KEY (optionnel — si absent, le Worker utilise GEMINI_API_KEY)
+# - GEMINI_API_KEY (gratuit à vie, sans carte bancaire — aistudio.google.com/apikey)
+# - GEMINI_MODEL (optionnel, défaut "gemini-3.5-flash-lite" — voir DEFAULT_GEMINI_MODEL dans src/index.js)
 # - NEWSAPI_KEY
 # - OPENWEATHER_KEY
 # - FINNHUB_KEY
